@@ -28,7 +28,12 @@
     .cal-day:hover { background: #f1f5f9; }
     .preview-card { width: 360px; }
     .preview-card > .export-root { width: 360px; }
-    @media (max-width: 640px) { .preview-card { width: 100%; max-width: 360px; } }
+    .preview-card.poster { height: 644px; }
+    .preview-card.poster > .export-root { height: 644px; }
+    @media (max-width: 640px) {
+      .preview-card { width: 100%; max-width: 360px; }
+      .preview-card.poster { height: auto; aspect-ratio: 572 / 1024; }
+    }
 
     .export-loading { pointer-events: none; opacity: .6; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -84,7 +89,7 @@
         </div>
 
         <!-- 诊所信息 -->
-        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+        <div class="grid sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label class="text-sm text-slate-600 mb-1 block">诊所名称</label>
             <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()"
@@ -95,6 +100,13 @@
             <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()"
               class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
           </div>
+        </div>
+
+        <!-- 祝贺文案 -->
+        <div class="mb-5">
+          <label class="text-sm text-slate-600 mb-1 block">祝贺文案（选填）</label>
+          <textarea id="sch-greeting" rows="2" placeholder="如：祝您端午安康，阖家幸福！" oninput="renderSchedulePreview()"
+            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 resize-none"></textarea>
         </div>
 
         <!-- 风格选择 -->
@@ -186,12 +198,66 @@ let selectedTemplate = 'extraction';
 // ==================== 主题配置 ====================
 const THEMES = {
   auto:     { label: '节日自动', color: '#0d9488', gradient: '' },
-  spring:   { label: '春节喜庆', color: '#dc2626', gradient: 'linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#f59e0b 100%)', greeting: '恭祝新春快乐', tag: '春节' },
-  qingming: { label: '清明时节', color: '#10b981', gradient: 'linear-gradient(135deg,#059669 0%,#10b981 50%,#0d9488 100%)', greeting: '清明安康', tag: '清明' },
-  labor:    { label: '劳动光荣', color: '#ea580c', gradient: 'linear-gradient(135deg,#ea580c 0%,#f97316 50%,#fb923c 100%)', greeting: '劳动节快乐', tag: '劳动节' },
-  dragon:   { label: '端午安康', color: '#059669', gradient: 'linear-gradient(135deg,#047857 0%,#059669 50%,#14b8a6 100%)', greeting: '端午安康', tag: '端午' },
-  midautumn:{ label: '中秋团圆', color: '#2563eb', gradient: 'linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#d97706 100%)', greeting: '中秋快乐', tag: '中秋' },
-  national: { label: '国庆华诞', color: '#dc2626', gradient: 'linear-gradient(135deg,#991b1b 0%,#dc2626 50%,#fbbf24 100%)', greeting: '国庆快乐', tag: '国庆' },
+  spring: {
+    label: '春节海报',
+    color: '#dc2626',
+    gradient: 'linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#f59e0b 100%)',
+    greeting: '恭祝新春快乐',
+    tag: '春节',
+    backgroundImage: 'assets/spring-bg.jpg',
+    posterHeight: 644,
+    contentInset: { top: '13%', left: '8%', right: '8%', bottom: '24%' },
+  },
+  qingming: {
+    label: '清明海报',
+    color: '#059669',
+    gradient: 'linear-gradient(135deg,#059669 0%,#10b981 50%,#0d9488 100%)',
+    greeting: '清明安康',
+    tag: '清明',
+    backgroundImage: 'assets/qingming-bg.png',
+    posterHeight: 644,
+    contentInset: { top: '13%', left: '8%', right: '8%', bottom: '24%' },
+  },
+  labor: {
+    label: '劳动海报',
+    color: '#ea580c',
+    gradient: 'linear-gradient(135deg,#ea580c 0%,#f97316 50%,#fb923c 100%)',
+    greeting: '劳动节快乐',
+    tag: '劳动节',
+    backgroundImage: 'assets/labor-bg.png',
+    posterHeight: 644,
+    contentInset: { top: '13%', left: '8%', right: '8%', bottom: '24%' },
+  },
+  dragon: {
+    label: '端午海报',
+    color: '#047857',
+    gradient: 'linear-gradient(135deg,#047857 0%,#059669 50%,#14b8a6 100%)',
+    greeting: '端午安康',
+    tag: '端午',
+    backgroundImage: 'assets/dragon-bg.png',
+    posterHeight: 644,
+    contentInset: { top: '13%', left: '8%', right: '8%', bottom: '24%' },
+  },
+  midautumn: {
+    label: '中秋海报',
+    color: '#6d28d9',
+    gradient: 'linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#d97706 100%)',
+    greeting: '中秋快乐',
+    tag: '中秋',
+    backgroundImage: 'assets/midautumn-bg.png',
+    posterHeight: 644,
+    contentInset: { top: '13%', left: '8%', right: '8%', bottom: '24%' },
+  },
+  national: {
+    label: '国庆海报',
+    color: '#dc2626',
+    gradient: 'linear-gradient(135deg,#991b1b 0%,#dc2626 50%,#fbbf24 100%)',
+    greeting: '国庆快乐',
+    tag: '国庆',
+    backgroundImage: 'assets/national-bg.png',
+    posterHeight: 644,
+    contentInset: { top: '13%', left: '8%', right: '8%', bottom: '24%' },
+  },
   simple:   { label: '简约白', color: '#64748b', gradient: 'linear-gradient(135deg,#f8fafc 0%,#e2e8f0 100%)', greeting: '', tag: '' },
   ocean:    { label: '海洋蓝', color: '#0ea5e9', gradient: 'linear-gradient(135deg,#0369a1 0%,#0ea5e9 50%,#38bdf8 100%)', greeting: '', tag: '' },
   peach:    { label: '暖桃粉', color: '#f472b6', gradient: 'linear-gradient(135deg,#f472b6 0%,#fb7185 50%,#fda4af 100%)', greeting: '', tag: '' },
@@ -201,6 +267,8 @@ const THEMES = {
 
 const MEDICAL_GRADIENT = 'linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)';
 const EXPORT_W = 360;
+/** 更换海报背景图后，把此数字 +1 可强制浏览器刷新缓存 */
+const POSTER_ASSET_VERSION = 2;
 
 const HOLIDAY_THEME_MAP = {
   '春节': 'spring', '除夕': 'spring', '初一': 'spring', '初二': 'spring',
@@ -468,6 +536,17 @@ function isRealHolidayName(name) {
   return true;
 }
 
+function isOffDay(info) {
+  return info && (info.holiday === true || info.holiday === 1);
+}
+
+function getDayHolidayLabel(info, maxLen = 3) {
+  if (!info || !isOffDay(info)) return '';
+  const name = String(info.name || '').trim();
+  if (!isRealHolidayName(name)) return '';
+  return name.replace(/节$/, '').slice(0, maxLen);
+}
+
 function getMonthFestivalName() {
   for (let d = 1; d <= 31; d++) {
     const info = getHolidayInfo(currentYear, currentMonth, d);
@@ -494,6 +573,19 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function getSchCustomGreeting() {
+  return (document.getElementById('sch-greeting')?.value || '').trim();
+}
+
+function updateGreetingPlaceholder() {
+  const el = document.getElementById('sch-greeting');
+  if (!el) return;
+  const theme = getActiveTheme();
+  el.placeholder = theme.greeting
+    ? `如：${theme.greeting}，阖家幸福！`
+    : '如：祝您节日快乐，阖家幸福！';
+}
+
 function getThemeGradient(themeKey) {
   return THEMES[themeKey]?.gradient || THEMES.ocean.gradient;
 }
@@ -518,11 +610,129 @@ function selectStyle(key) {
   renderSchedulePreview();
 }
 
+function isPosterTheme(themeKey) {
+  return Boolean(THEMES[themeKey]?.backgroundImage);
+}
+
+function posterImageSrc(path) {
+  return `${path}?v=${POSTER_ASSET_VERSION}`;
+}
+
+function preloadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function updateSchedulePreviewSize(themeKey) {
+  const preview = document.getElementById('schedule-preview');
+  if (isPosterTheme(themeKey)) {
+    preview.classList.add('poster');
+  } else {
+    preview.classList.remove('poster');
+  }
+}
+
+function getGlassPanelStyle(forExport) {
+  if (forExport) {
+    return 'background:linear-gradient(180deg,rgba(255,255,255,0.96) 0%,rgba(255,255,255,0.90) 100%);border:1px solid rgba(255,255,255,0.75);border-radius:18px;box-shadow:0 4px 20px rgba(15,23,42,0.10);';
+  }
+  return 'background:rgba(255,255,255,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.35);border-radius:18px;box-shadow:0 2px 12px rgba(15,23,42,0.06);';
+}
+
+// ==================== 节日海报排期（背景图 + 白区叠加） ====================
+function buildPosterScheduleHTML(interactive, themeKey, theme) {
+  const forExport = !interactive;
+  const clinic = document.getElementById('sch-clinic').value || '诊所名称';
+  const phone = document.getElementById('sch-phone').value;
+  const customMsg = getSchCustomGreeting();
+  const h = theme.posterHeight || 644;
+  const inset = theme.contentInset || { top: '13%', left: '8%', right: '8%', bottom: '24%' };
+  const titleColor = theme.color || '#b91c1c';
+  const GAP = 3;
+  const ROW_GAP = 4;
+  const cellW = 39;
+  const cellH = 52;
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+  const slots = [];
+  for (let i = 0; i < startOffset; i++) slots.push(0);
+  for (let d = 1; d <= daysInMonth; d++) slots.push(d);
+  while (slots.length % 7 !== 0) slots.push(0);
+
+  function dayCell(d) {
+    if (!d) return `<td style="width:${cellW}px;height:${cellH}px;padding:0;border:0;"></td>`;
+    const work = isWorkDay(currentYear, currentMonth, d);
+    const info = getHolidayInfo(currentYear, currentMonth, d);
+    const holidayLabel = getDayHolidayLabel(info, 3);
+    const label = work ? '诊' : '休';
+    const numColor = work ? '#15803d' : '#dc2626';
+    const bg = work ? 'rgba(240,253,244,0.95)' : 'rgba(254,242,242,0.95)';
+    const border = work ? '#86efac' : '#fca5a5';
+    const click = interactive ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" class="cal-day"` : '';
+    return `<td${click} style="width:${cellW}px;height:${cellH}px;padding:0;border:0;vertical-align:top;">
+      <div style="width:${cellW}px;height:${cellH}px;background:${bg};border:1px solid ${border};border-radius:7px;text-align:center;box-sizing:border-box;padding:3px 2px;">
+        <div style="font-size:13px;font-weight:700;line-height:15px;color:${numColor};">${d}</div>
+        ${holidayLabel
+          ? `<div style="font-size:9px;line-height:12px;color:#dc2626;margin-top:2px;font-weight:500;">${esc(holidayLabel)}</div>`
+          : ''}
+        <div style="font-size:9px;font-weight:600;line-height:11px;color:${numColor};margin-top:${holidayLabel ? 2 : 4}px;">${label}</div>
+      </div>
+    </td>`;
+  }
+
+  let calendarRows = '';
+  for (let i = 0; i < slots.length; i += 7) {
+    calendarRows += '<tr>' + slots.slice(i, i + 7).map(dayCell).join('') + '</tr>';
+  }
+
+  const weekdayRow = `<tr>${WEEKDAYS.map(w => `<td style="width:${cellW}px;height:16px;padding:0;border:0;text-align:center;font-size:9px;color:#94a3b8;vertical-align:bottom;">${w}</td>`).join('')}</tr>`;
+  const calTable = `<table style="border-collapse:separate;border-spacing:${GAP}px ${ROW_GAP}px;width:auto;margin:0 auto;">${weekdayRow}${calendarRows}</table>`;
+
+  const footerText = '如有变动请以诊所通知为准';
+  const glassPanel = getGlassPanelStyle(forExport);
+
+  return `<div class="export-root" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <img src="${posterImageSrc(theme.backgroundImage)}" alt="" crossorigin="anonymous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;pointer-events:none;" />
+    <div style="position:absolute;top:${inset.top};left:${inset.left};right:${inset.right};bottom:${inset.bottom};box-sizing:border-box;z-index:1;display:flex;flex-direction:column;">
+      <div style="width:100%;flex:1;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;padding:12px 12px 10px;${glassPanel}">
+        <div style="text-align:center;width:100%;margin-bottom:8px;flex-shrink:0;">
+          <div style="font-size:22px;font-weight:700;color:${titleColor};line-height:28px;letter-spacing:0.5px;">${esc(clinic)}</div>
+          ${phone ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:15px;">咨询电话：${esc(phone)}</div>` : ''}
+          <div style="font-size:15px;font-weight:600;color:#64748b;line-height:20px;margin-top:${phone ? 6 : 4}px;">${currentYear}年${MONTHS[currentMonth]}</div>
+          ${customMsg ? `<div style="font-size:12px;color:#475569;line-height:18px;margin-top:8px;padding:0 8px;">${esc(customMsg)}</div>` : ''}
+          <div style="margin-top:8px;font-size:10px;color:#64748b;">
+            <span style="margin-right:12px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:3px;vertical-align:middle;"></span>出诊</span>
+            <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f87171;margin-right:3px;vertical-align:middle;"></span>休息</span>
+          </div>
+        </div>
+        <div style="width:100%;display:flex;justify-content:center;margin-top:6px;margin-bottom:4px;flex-shrink:0;padding:0 10px;box-sizing:border-box;">
+          ${calTable}
+        </div>
+        <div style="text-align:center;width:100%;margin-top:10px;padding:10px 0 4px;border-top:1px solid rgba(148,163,184,0.2);flex-shrink:0;">
+          <div style="font-size:10px;color:#64748b;line-height:14px;">${footerText}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 // ==================== 排期 HTML 构建（表格布局，html2canvas 友好） ====================
 function buildScheduleHTML(interactive) {
   const clinic = document.getElementById('sch-clinic').value || '诊所名称';
   const phone = document.getElementById('sch-phone').value;
+  const customMsg = getSchCustomGreeting();
   const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
+  const theme = THEMES[themeKey] || THEMES.ocean;
+  if (theme.backgroundImage) {
+    return buildPosterScheduleHTML(interactive, themeKey, theme);
+  }
   const gradient = getThemeGradient(themeKey);
   const tag = getMonthTag();
   const greeting = getMonthGreeting();
@@ -540,24 +750,28 @@ function buildScheduleHTML(interactive) {
   for (let d = 1; d <= daysInMonth; d++) slots.push(d);
   while (slots.length % 7 !== 0) slots.push(0);
 
+  const GAP = 4;
+  const ROW_GAP = 5;
+  const cellW = 40;
+  const cellH = 54;
+
   function dayCell(d) {
-    if (!d) return '<td style="width:44px;height:54px;padding:0;border:0;"></td>';
+    if (!d) return `<td style="width:${cellW}px;height:${cellH}px;padding:0;border:0;"></td>`;
     const work = isWorkDay(currentYear, currentMonth, d);
     const info = getHolidayInfo(currentYear, currentMonth, d);
-    let holidayLabel = '';
-    if (!work && info && info.holiday && isRealHolidayName(info.name)) {
-      holidayLabel = info.name.replace(/节$/, '').slice(0, 4);
-    }
+    const holidayLabel = getDayHolidayLabel(info, 4);
     const label = work ? '诊' : '休';
     const numColor = work ? '#16a34a' : '#dc2626';
     const bg = work ? '#f0fdf4' : '#fef2f2';
     const border = work ? '#bbf7d0' : '#fecaca';
     const click = interactive ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" class="cal-day"` : '';
-    return `<td${click} style="width:44px;height:54px;padding:0;border:0;vertical-align:middle;">
-      <div style="width:44px;height:54px;background:${bg};border:1px solid ${border};border-radius:8px;text-align:center;box-sizing:border-box;padding-top:6px;">
-        <div style="font-size:16px;font-weight:700;line-height:18px;color:${numColor};">${d}</div>
-        ${holidayLabel ? `<div style="font-size:9px;line-height:11px;color:#dc2626;margin-top:1px;height:11px;overflow:hidden;">${esc(holidayLabel)}</div>` : '<div style="height:12px;"></div>'}
-        <div style="font-size:10px;font-weight:600;line-height:12px;color:${numColor};margin-top:1px;">${label}</div>
+    return `<td${click} style="width:${cellW}px;height:${cellH}px;padding:0;border:0;vertical-align:top;">
+      <div style="width:${cellW}px;height:${cellH}px;background:${bg};border:1px solid ${border};border-radius:8px;text-align:center;box-sizing:border-box;padding:4px 3px;">
+        <div style="font-size:14px;font-weight:700;line-height:16px;color:${numColor};">${d}</div>
+        ${holidayLabel
+          ? `<div style="font-size:9px;line-height:12px;color:#dc2626;margin-top:2px;font-weight:500;">${esc(holidayLabel)}</div>`
+          : ''}
+        <div style="font-size:9px;font-weight:600;line-height:11px;color:${numColor};margin-top:${holidayLabel ? 2 : 4}px;">${label}</div>
       </div>
     </td>`;
   }
@@ -567,30 +781,33 @@ function buildScheduleHTML(interactive) {
     calendarRows += '<tr>' + slots.slice(i, i + 7).map(dayCell).join('') + '</tr>';
   }
 
-  const footerText = greeting ? `${esc(greeting)} · 如有变动请以诊所通知为准` : '如有变动请以诊所通知为准';
+  const weekdayRow = `<tr>${WEEKDAYS.map(w => `<td style="width:${cellW}px;height:18px;padding:0;border:0;text-align:center;font-size:10px;color:#94a3b8;vertical-align:bottom;">周${w}</td>`).join('')}</tr>`;
+  const calTable = `<table style="border-collapse:separate;border-spacing:${GAP}px ${ROW_GAP}px;width:auto;margin:0 auto;">${weekdayRow}${calendarRows}</table>`;
+
+  const footerText = customMsg
+    ? '如有变动请以诊所通知为准'
+    : (greeting ? `${esc(greeting)} · 如有变动请以诊所通知为准` : '如有变动请以诊所通知为准');
 
   return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
     <div style="background:${gradient};padding:24px 20px 20px;box-sizing:border-box;">
       ${tag ? `<div style="display:inline-block;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:600;background:${tagBg};color:${headerColor};margin-bottom:8px;">${esc(tag)}</div>` : ''}
       <div style="text-align:right;font-size:12px;color:${subColor};margin-bottom:4px;">${esc(clinic)}</div>
+      ${phone ? `<div style="text-align:right;font-size:11px;color:${subColor};margin-bottom:4px;opacity:0.9;">咨询电话：${esc(phone)}</div>` : ''}
       <div style="font-size:24px;font-weight:700;color:${headerColor};line-height:30px;">${currentYear} ${MONTHS[currentMonth]}</div>
+      ${customMsg ? `<div style="text-align:center;font-size:13px;color:${headerColor};line-height:20px;margin:6px 0 2px;padding:0 8px;opacity:0.95;">${esc(customMsg)}</div>` : ''}
       <div style="font-size:14px;color:${subColor};margin-top:2px;">出诊排期表</div>
       <div style="margin-top:12px;font-size:11px;color:${subColor};">
         <span style="display:inline-block;margin-right:16px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:4px;vertical-align:middle;"></span>出诊</span>
         <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f87171;margin-right:4px;vertical-align:middle;"></span>休息</span>
       </div>
     </div>
-    <div style="padding:12px 8px 16px;box-sizing:border-box;">
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6px;">
-        <tr>${WEEKDAYS.map(w => `<td style="text-align:center;font-size:11px;color:#94a3b8;padding:0 0 6px;">周${w}</td>`).join('')}</tr>
-      </table>
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
-        ${calendarRows}
-      </table>
+    <div style="padding:14px 10px 16px;box-sizing:border-box;">
+      <div style="width:100%;display:flex;justify-content:center;">
+        ${calTable}
+      </div>
     </div>
     <div style="padding:0 20px 20px;text-align:center;">
       <div style="font-size:12px;color:#64748b;line-height:18px;">${footerText}</div>
-      ${phone ? `<div style="font-size:12px;color:#94a3b8;margin-top:6px;">咨询电话：${esc(phone)}</div>` : ''}
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;font-size:10px;color:#cbd5e1;letter-spacing:1px;">DENTAL CLINIC SCHEDULE</div>
     </div>
   </div>`;
@@ -598,6 +815,9 @@ function buildScheduleHTML(interactive) {
 
 function renderSchedulePreview() {
   document.getElementById('month-label').textContent = `${currentYear}年 ${MONTHS[currentMonth]}`;
+  updateGreetingPlaceholder();
+  const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
+  updateSchedulePreviewSize(themeKey);
   document.getElementById('schedule-preview').innerHTML = buildScheduleHTML(true);
 }
 
@@ -678,17 +898,31 @@ async function exportImage(type) {
   document.body.appendChild(host);
 
   const el = host.querySelector('.export-root');
+  const themeKey = type === 'schedule'
+    ? (selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle)
+    : null;
+  const posterTheme = themeKey && THEMES[themeKey]?.backgroundImage ? THEMES[themeKey] : null;
+  if (posterTheme?.backgroundImage) {
+    try { await preloadImage(posterImageSrc(posterTheme.backgroundImage)); } catch (_) { /* continue */ }
+  }
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  if (posterTheme?.backgroundImage) {
+    await new Promise(r => setTimeout(r, 120));
+  }
 
   try {
+    const exportH = posterTheme?.posterHeight || el.offsetHeight;
     const canvas = await html2canvas(el, {
       scale: 2,
       useCORS: true,
-      backgroundColor: '#ffffff',
+      allowTaint: false,
+      backgroundColor: null,
       logging: false,
       foreignObjectRendering: false,
       width: EXPORT_W,
+      height: exportH,
       windowWidth: EXPORT_W,
+      windowHeight: exportH,
       scrollX: 0,
       scrollY: 0,
     });
