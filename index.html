@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>齿科设计助手 · 一键出图</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    .tab-active { background: #0d9488; color: #fff; box-shadow: 0 2px 8px rgba(13,148,136,.35); }
+    .style-pill { transition: all .2s; }
+    .style-pill.active { ring: 2px; box-shadow: 0 0 0 2px #0d9488; }
+    .tpl-card { transition: all .2s; cursor: pointer; }
+    .tpl-card.active { border-color: #0d9488; background: #f0fdfa; box-shadow: 0 0 0 2px #0d9488; }
+    .cal-day { cursor: pointer; transition: background .15s; }
+    .cal-day:hover { background: #f1f5f9; }
+    .preview-card { width: 360px; }
+    .preview-card > .export-root { width: 360px; }
+    @media (max-width: 640px) { .preview-card { width: 100%; max-width: 360px; } }
+
+    .export-loading { pointer-events: none; opacity: .6; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+  <!-- 顶栏 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold text-lg shadow-md">齿</div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">齿科设计助手</h1>
+          <p class="text-xs text-slate-500">排期表 · 术后须知 · 一键出图</p>
+        </div>
+      </div>
+      <nav class="flex gap-2 bg-slate-100 p-1 rounded-full">
+        <button id="tab-schedule" onclick="switchTab('schedule')" class="tab-btn tab-active px-5 py-2 rounded-full text-sm font-medium transition">节假日排期</button>
+        <button id="tab-care" onclick="switchTab('care')" class="tab-btn px-5 py-2 rounded-full text-sm font-medium text-slate-600 transition">术后护理</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- ========== 节假日排期 ========== -->
+    <section id="panel-schedule">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">节假日排期表</h2>
+            <p class="text-sm text-slate-500 mt-1">自动获取节假日数据，点击下方预览日历中的日期可切换出诊/休息，一键导出通知图</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="refreshHolidays()" class="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              刷新节假日
+            </button>
+            <button onclick="exportImage('schedule')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              导出图片
+            </button>
+          </div>
+        </div>
+
+        <!-- 月份选择 -->
+        <div class="flex items-center justify-center gap-4 mb-5">
+          <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600">&lt;</button>
+          <span id="month-label" class="text-lg font-semibold min-w-[140px] text-center"></span>
+          <button onclick="changeMonth(1)" class="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600">&gt;</button>
+        </div>
+
+        <!-- 诊所信息 -->
+        <div class="grid sm:grid-cols-2 gap-4 mb-5">
+          <div>
+            <label class="text-sm text-slate-600 mb-1 block">诊所名称</label>
+            <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-600 mb-1 block">联系电话</label>
+            <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
+          </div>
+        </div>
+
+        <!-- 风格选择 -->
+        <div class="mb-2">
+          <label class="text-sm text-slate-600 mb-2 block">选择风格</label>
+          <div id="style-pills" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- 预览 -->
+      <div class="flex justify-center pb-8">
+        <div id="schedule-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+      </div>
+    </section>
+
+    <!-- ========== 术后护理 ========== -->
+    <section id="panel-care" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">术后护理须知</h2>
+            <p class="text-sm text-slate-500 mt-1">选择模板，填写个性化信息，一键生成患者须知图</p>
+          </div>
+          <button onclick="exportImage('care')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            导出图片
+          </button>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6 pb-8">
+        <!-- 左侧控制 -->
+        <div class="space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">选择模板</h3>
+            <div id="tpl-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">个性化信息</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">诊所名称</label>
+                <input id="care-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderCarePreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
+                <input id="care-phone" type="text" placeholder="如：010-12345678" oninput="renderCarePreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">复诊时间</label>
+                <input id="care-followup" type="text" placeholder="如：术后7天上午10:00" oninput="renderCarePreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">医生建议（选填）</label>
+                <textarea id="care-advice" rows="3" placeholder="可补充个性化医嘱..." oninput="renderCarePreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧预览 -->
+        <div class="flex justify-center lg:justify-start">
+          <div id="care-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-slate-400 py-6 border-t border-slate-100">
+  齿科设计助手 · 本地运行，无需数据库 · 节假日数据来自 timor.tech
+  </footer>
+
+<script>
+// ==================== 全局状态 ====================
+const MONTHS = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+const WEEKDAYS = ['一','二','三','四','五','六','日'];
+
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth(); // 0-indexed
+let holidayData = {};       // 'MM-DD' -> { holiday, name, date }
+let dayOverrides = {};      // 'YYYY-MM-DD' -> true(出诊) / false(休息)
+let selectedStyle = 'auto';
+let selectedTemplate = 'extraction';
+
+// ==================== 主题配置 ====================
+const THEMES = {
+  auto:     { label: '节日自动', color: '#0d9488', gradient: '' },
+  spring:   { label: '春节喜庆', color: '#dc2626', gradient: 'linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#f59e0b 100%)', greeting: '恭祝新春快乐', tag: '春节' },
+  qingming: { label: '清明时节', color: '#10b981', gradient: 'linear-gradient(135deg,#059669 0%,#10b981 50%,#0d9488 100%)', greeting: '清明安康', tag: '清明' },
+  labor:    { label: '劳动光荣', color: '#ea580c', gradient: 'linear-gradient(135deg,#ea580c 0%,#f97316 50%,#fb923c 100%)', greeting: '劳动节快乐', tag: '劳动节' },
+  dragon:   { label: '端午安康', color: '#059669', gradient: 'linear-gradient(135deg,#047857 0%,#059669 50%,#14b8a6 100%)', greeting: '端午安康', tag: '端午' },
+  midautumn:{ label: '中秋团圆', color: '#2563eb', gradient: 'linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#d97706 100%)', greeting: '中秋快乐', tag: '中秋' },
+  national: { label: '国庆华诞', color: '#dc2626', gradient: 'linear-gradient(135deg,#991b1b 0%,#dc2626 50%,#fbbf24 100%)', greeting: '国庆快乐', tag: '国庆' },
+  simple:   { label: '简约白', color: '#64748b', gradient: 'linear-gradient(135deg,#f8fafc 0%,#e2e8f0 100%)', greeting: '', tag: '' },
+  ocean:    { label: '海洋蓝', color: '#0ea5e9', gradient: 'linear-gradient(135deg,#0369a1 0%,#0ea5e9 50%,#38bdf8 100%)', greeting: '', tag: '' },
+  peach:    { label: '暖桃粉', color: '#f472b6', gradient: 'linear-gradient(135deg,#f472b6 0%,#fb7185 50%,#fda4af 100%)', greeting: '', tag: '' },
+  forest:   { label: '森林绿', color: '#22c55e', gradient: 'linear-gradient(135deg,#166534 0%,#22c55e 50%,#4ade80 100%)', greeting: '', tag: '' },
+  purple:   { label: '梦幻紫', color: '#8b5cf6', gradient: 'linear-gradient(135deg,#6d28d9 0%,#8b5cf6 50%,#a78bfa 100%)', greeting: '', tag: '' },
+};
+
+const MEDICAL_GRADIENT = 'linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)';
+const EXPORT_W = 360;
+
+const HOLIDAY_THEME_MAP = {
+  '春节': 'spring', '除夕': 'spring', '初一': 'spring', '初二': 'spring',
+  '清明': 'qingming', '劳动节': 'labor', '端午': 'dragon',
+  '中秋': 'midautumn', '国庆': 'national',
+};
+
+// ==================== 术后模板 ====================
+const CARE_TEMPLATES = {
+  extraction: {
+    label: '拔牙术后',
+    title: '拔牙术后注意事项',
+    en: 'POST-EXTRACTION CARE',
+    color: '#0891b2',
+    items: [
+      { t: '咬紧棉球', d: '术后请咬紧棉球30-40分钟，勿频繁更换。如仍有渗血，可更换新棉球继续咬紧。' },
+      { t: '冷敷消肿', d: '术后24小时内可对面颊部冷敷，每次15-20分钟，间隔1-2小时，有助于减轻肿胀。' },
+      { t: '勿漱口刷牙', d: '术后24小时内请勿漱口、刷牙、吐口水，避免破坏血凝块导致出血。' },
+      { t: '饮食注意', d: '术后2小时后可进食温凉流食或软食，避免过热、辛辣及过硬食物。' },
+      { t: '按时服药', d: '请遵医嘱服用消炎止痛药，如有不适请及时联系诊所。' },
+      { t: '禁忌事项', d: '术后一周内忌烟酒，避免剧烈运动及吸吮伤口，防止干槽症。' },
+    ],
+  },
+  implant: {
+    label: '种植术后',
+    title: '种植牙术后注意事项',
+    en: 'POST-IMPLANT CARE',
+    color: '#0d9488',
+    items: [
+      { t: '咬紧纱布', d: '术后咬紧纱布30分钟，24小时内避免刷牙及漱口，防止种植体松动。' },
+      { t: '冰敷消肿', d: '术后48小时内间断冷敷，每次15分钟，可有效减轻术后肿胀。' },
+      { t: '饮食要求', d: '术后以温凉软食为主，避免咀嚼种植侧，忌辛辣刺激食物。' },
+      { t: '口腔清洁', d: '术后次日可用温盐水轻柔漱口，勿使用电动牙刷刷手术区域。' },
+      { t: '按时复诊', d: '请按时复诊拆线及检查愈合情况，如有异常肿胀疼痛请及时就诊。' },
+      { t: '生活习惯', d: '术后两周内避免剧烈运动、吸烟饮酒，保证充足睡眠促进愈合。' },
+    ],
+  },
+  filling: {
+    label: '补牙术后',
+    title: '补牙术后注意事项',
+    en: 'POST-FILLING CARE',
+    color: '#2563eb',
+    items: [
+      { t: '等待定型', d: '树脂补牙后2小时内避免进食，24小时内避免咬硬物，防止充填物脱落。' },
+      { t: '敏感反应', d: '术后可能出现短暂冷热敏感，一般1-2周内自行缓解，持续不适请复诊。' },
+      { t: '口腔清洁', d: '正常刷牙漱口，使用牙线时注意避开补牙边缘，保持口腔清洁。' },
+      { t: '饮食建议', d: '避免过粘、过硬食物（如年糕、坚果），减少对充填体的损伤。' },
+      { t: '定期复查', d: '建议每半年复查一次，检查充填体完整性及邻牙健康状况。' },
+    ],
+  },
+  rootcanal: {
+    label: '根管治疗',
+    title: '根管治疗后注意事项',
+    en: 'POST-ROOT CANAL CARE',
+    color: '#7c3aed',
+    items: [
+      { t: '暂封保护', d: '治疗期间避免用患侧咀嚼硬物，防止暂封材料脱落，如有脱落请立即就诊。' },
+      { t: '疼痛管理', d: '术后1-3天可能有轻微胀痛，可遵医嘱服用止痛药，持续剧痛请复诊。' },
+      { t: '完成治疗', d: '根管治疗通常需2-3次就诊，请按时完成全部疗程，避免半途而废。' },
+      { t: '牙冠修复', d: '根管治疗后建议尽快做牙冠修复，防止牙齿劈裂。' },
+      { t: '口腔卫生', d: '正常刷牙，治疗期间可用温盐水漱口，保持口腔清洁。' },
+    ],
+  },
+  cleaning: {
+    label: '洁牙术后',
+    title: '洁牙术后注意事项',
+    en: 'POST-CLEANING CARE',
+    color: '#06b6d4',
+    items: [
+      { t: '敏感护理', d: '洁牙后1-2天可能出现牙齿酸软敏感，属正常现象，避免过冷过热刺激。' },
+      { t: '出血观察', d: '牙龈可能有少量出血，使用软毛牙刷轻柔刷牙，出血不止请联系诊所。' },
+      { t: '饮食注意', d: '术后24小时内避免浓茶、咖啡、红酒等易染色食物。' },
+      { t: '刷牙方法', d: '掌握正确刷牙方法，配合牙线/冲牙器，保持牙周健康。' },
+      { t: '定期洁牙', d: '建议每6-12个月洁牙一次，维护口腔健康。' },
+    ],
+  },
+  ortho: {
+    label: '正畸调整',
+    title: '正畸调整后注意事项',
+    en: 'ORTHODONTIC CARE',
+    color: '#6366f1',
+    items: [
+      { t: '酸软适应', d: '调整后2-5天牙齿酸软属正常反应，可进食软食，逐渐适应。' },
+      { t: '饮食禁忌', d: '避免啃咬硬物（坚果、骨头），少吃黏性食物（口香糖、牛轧糖）。' },
+      { t: '口腔清洁', d: '使用正畸专用牙刷，餐后及时刷牙，配合牙缝刷清洁托槽周围。' },
+      { t: '托槽保护', d: '如托槽脱落或钢丝扎嘴，请用正畸蜡覆盖并尽快联系医生处理。' },
+      { t: '按时复诊', d: '请按预约时间复诊调整，不可自行调整或拆除矫正装置。' },
+    ],
+  },
+  whitening: {
+    label: '牙齿美白',
+    title: '牙齿美白后注意事项',
+    en: 'POST-WHITENING CARE',
+    color: '#ec4899',
+    items: [
+      { t: '敏感护理', d: '美白后24-48小时牙齿可能敏感，避免冷热刺激，可使用脱敏牙膏。' },
+      { t: '饮食禁忌', d: '美白后48小时内避免咖啡、茶、红酒、酱油等深色食物及饮料。' },
+      { t: '戒烟限酒', d: '烟草和酒精会加速色素沉积，影响美白效果维持。' },
+      { t: '口腔清洁', d: '正常刷牙漱口，保持口腔清洁，延长美白效果。' },
+      { t: '效果维持', d: '美白效果一般维持1-2年，可定期进行美白维护。' },
+    ],
+  },
+  wisdom: {
+    label: '智齿拔除',
+    title: '智齿拔除术后注意事项',
+    en: 'WISDOM TOOTH EXTRACTION',
+    color: '#0e7490',
+    items: [
+      { t: '压迫止血', d: '咬紧棉球40-60分钟，智齿创面较大，如有渗血可延长压迫时间。' },
+      { t: '冰敷消肿', d: '术后48小时内冷敷，每次20分钟，有助于减轻面部肿胀。' },
+      { t: '伤口护理', d: '24小时内勿漱口、吐口水、用吸管，避免血凝块脱落引发干槽症。' },
+      { t: '饮食调整', d: '前3天以流食/半流食为主，从健侧进食，避免辛辣食物。' },
+      { t: '拆线复诊', d: '如需拆线请于术后7-10天复诊，如有剧烈疼痛或异味请及时就诊。' },
+      { t: '禁忌事项', d: '术后两周忌烟酒，避免剧烈运动及桑拿泡澡。' },
+    ],
+  },
+};
+
+// ==================== Tab 切换 ====================
+function switchTab(tab) {
+  document.getElementById('panel-schedule').classList.toggle('hidden', tab !== 'schedule');
+  document.getElementById('panel-care').classList.toggle('hidden', tab !== 'care');
+  document.getElementById('tab-schedule').classList.toggle('tab-active', tab === 'schedule');
+  document.getElementById('tab-care').classList.toggle('tab-active', tab === 'care');
+  document.getElementById('tab-schedule').classList.toggle('text-slate-600', tab !== 'schedule');
+  document.getElementById('tab-care').classList.toggle('text-slate-600', tab !== 'care');
+}
+
+// ==================== 节假日 API ====================
+async function fetchFromTimor(year) {
+  const res = await fetch(`https://timor.tech/api/holiday/year/${year}/?type=Y&week=Y`);
+  const json = await res.json();
+  if (json.code === 0 && json.holiday) {
+    holidayData = json.holiday;
+    return true;
+  }
+  return false;
+}
+
+async function fetchFromHolidayCn(year) {
+  const urls = [
+    `https://cdn.jsdelivr.net/gh/NateScarlet/holiday-cn@master/${year}.json`,
+    `https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/${year}.json`,
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.days) {
+        const map = {};
+        json.days.forEach(day => {
+          const [, mm, dd] = day.date.split('-');
+          const key = `${mm}-${dd}`;
+          map[key] = {
+            holiday: day.isOffDay,
+            name: day.isOffDay ? day.name : (day.name || '补班'),
+            date: day.date,
+          };
+        });
+        holidayData = map;
+        return true;
+      }
+    } catch (_) { /* try next */ }
+  }
+  return false;
+}
+
+async function fetchHolidays(year) {
+  try {
+    if (await fetchFromTimor(year)) return true;
+  } catch (e) {
+    console.warn('timor.tech 获取失败，尝试备用源', e);
+  }
+  try {
+    if (await fetchFromHolidayCn(year)) return true;
+  } catch (e) {
+    console.warn('备用节假日源也失败，使用周末默认规则', e);
+  }
+  holidayData = {};
+  return false;
+}
+
+async function refreshHolidays() {
+  const btn = event?.target?.closest('button');
+  if (btn) btn.classList.add('export-loading');
+  await fetchHolidays(currentYear);
+  initDayStates();
+  renderSchedulePreview();
+  renderStylePills();
+  if (btn) btn.classList.remove('export-loading');
+}
+
+// ==================== 日历逻辑 ====================
+function dateKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function isWeekend(y, m, d) {
+  const day = new Date(y, m, d).getDay();
+  return day === 0 || day === 6;
+}
+
+function getHolidayInfo(y, m, d) {
+  const key = `${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  return holidayData[key] || null;
+}
+
+function defaultIsWork(y, m, d) {
+  const info = getHolidayInfo(y, m, d);
+  if (info) {
+    if (info.holiday === true) return false;
+    if (info.holiday === false) return true; // 调休上班
+  }
+  return !isWeekend(y, m, d);
+}
+
+function isWorkDay(y, m, d) {
+  const k = dateKey(y, m, d);
+  if (k in dayOverrides) return dayOverrides[k];
+  return defaultIsWork(y, m, d);
+}
+
+function toggleDay(y, m, d) {
+  const k = dateKey(y, m, d);
+  const current = isWorkDay(y, m, d);
+  dayOverrides[k] = !current;
+  renderSchedulePreview();
+}
+
+function initDayStates() {
+  // 切换月份时保留已有 override，不重置
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  fetchHolidays(currentYear).then(() => {
+    renderSchedulePreview();
+    renderStylePills();
+  });
+}
+
+function detectAutoTheme() {
+  for (let d = 1; d <= 31; d++) {
+    const info = getHolidayInfo(currentYear, currentMonth, d);
+    if (info && info.holiday && isRealHolidayName(info.name)) {
+      for (const [kw, theme] of Object.entries(HOLIDAY_THEME_MAP)) {
+        if (info.name.includes(kw)) return theme;
+      }
+    }
+  }
+  return 'ocean';
+}
+
+function getActiveTheme() {
+  const key = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
+  return THEMES[key] || THEMES.ocean;
+}
+
+function isRealHolidayName(name) {
+  if (!name) return false;
+  if (/^周[一二三四五六日]$/.test(name)) return false;
+  if (name === '补班' || name.includes('补班')) return false;
+  return true;
+}
+
+function getMonthFestivalName() {
+  for (let d = 1; d <= 31; d++) {
+    const info = getHolidayInfo(currentYear, currentMonth, d);
+    if (info && info.holiday && isRealHolidayName(info.name)) return info.name;
+  }
+  return '';
+}
+
+function getMonthGreeting() {
+  const theme = getActiveTheme();
+  if (theme.greeting) return theme.greeting;
+  const fest = getMonthFestivalName();
+  if (fest) return `祝您${fest}快乐`;
+  return '';
+}
+
+function getMonthTag() {
+  const theme = getActiveTheme();
+  if (theme.tag) return theme.tag;
+  return getMonthFestivalName();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getThemeGradient(themeKey) {
+  return THEMES[themeKey]?.gradient || THEMES.ocean.gradient;
+}
+
+// ==================== 风格选择器 ====================
+function renderStylePills() {
+  const autoTheme = detectAutoTheme();
+  const autoLabel = THEMES[autoTheme]?.tag || '自动';
+  const container = document.getElementById('style-pills');
+  container.innerHTML = Object.entries(THEMES).map(([key, t]) => {
+    const label = key === 'auto' ? `节日自动 · ${autoLabel}` : t.label;
+    const active = selectedStyle === key;
+    return `<button onclick="selectStyle('${key}')" class="style-pill px-3 py-1.5 rounded-full text-xs border ${active ? 'active border-teal-500 bg-teal-50 text-teal-700 font-medium' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}">
+      <span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:${t.color}"></span>${label}
+    </button>`;
+  }).join('');
+}
+
+function selectStyle(key) {
+  selectedStyle = key;
+  renderStylePills();
+  renderSchedulePreview();
+}
+
+// ==================== 排期 HTML 构建（表格布局，html2canvas 友好） ====================
+function buildScheduleHTML(interactive) {
+  const clinic = document.getElementById('sch-clinic').value || '诊所名称';
+  const phone = document.getElementById('sch-phone').value;
+  const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
+  const gradient = getThemeGradient(themeKey);
+  const tag = getMonthTag();
+  const greeting = getMonthGreeting();
+  const isLight = themeKey === 'simple';
+  const headerColor = isLight ? '#1e293b' : '#ffffff';
+  const subColor = isLight ? '#64748b' : '#e2e8f0';
+  const tagBg = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.25)';
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+  const slots = [];
+  for (let i = 0; i < startOffset; i++) slots.push(0);
+  for (let d = 1; d <= daysInMonth; d++) slots.push(d);
+  while (slots.length % 7 !== 0) slots.push(0);
+
+  function dayCell(d) {
+    if (!d) return '<td style="width:44px;height:54px;padding:0;border:0;"></td>';
+    const work = isWorkDay(currentYear, currentMonth, d);
+    const info = getHolidayInfo(currentYear, currentMonth, d);
+    let holidayLabel = '';
+    if (!work && info && info.holiday && isRealHolidayName(info.name)) {
+      holidayLabel = info.name.replace(/节$/, '').slice(0, 4);
+    }
+    const label = work ? '诊' : '休';
+    const numColor = work ? '#16a34a' : '#dc2626';
+    const bg = work ? '#f0fdf4' : '#fef2f2';
+    const border = work ? '#bbf7d0' : '#fecaca';
+    const click = interactive ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" class="cal-day"` : '';
+    return `<td${click} style="width:44px;height:54px;padding:0;border:0;vertical-align:middle;">
+      <div style="width:44px;height:54px;background:${bg};border:1px solid ${border};border-radius:8px;text-align:center;box-sizing:border-box;padding-top:6px;">
+        <div style="font-size:16px;font-weight:700;line-height:18px;color:${numColor};">${d}</div>
+        ${holidayLabel ? `<div style="font-size:9px;line-height:11px;color:#dc2626;margin-top:1px;height:11px;overflow:hidden;">${esc(holidayLabel)}</div>` : '<div style="height:12px;"></div>'}
+        <div style="font-size:10px;font-weight:600;line-height:12px;color:${numColor};margin-top:1px;">${label}</div>
+      </div>
+    </td>`;
+  }
+
+  let calendarRows = '';
+  for (let i = 0; i < slots.length; i += 7) {
+    calendarRows += '<tr>' + slots.slice(i, i + 7).map(dayCell).join('') + '</tr>';
+  }
+
+  const footerText = greeting ? `${esc(greeting)} · 如有变动请以诊所通知为准` : '如有变动请以诊所通知为准';
+
+  return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
+    <div style="background:${gradient};padding:24px 20px 20px;box-sizing:border-box;">
+      ${tag ? `<div style="display:inline-block;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:600;background:${tagBg};color:${headerColor};margin-bottom:8px;">${esc(tag)}</div>` : ''}
+      <div style="text-align:right;font-size:12px;color:${subColor};margin-bottom:4px;">${esc(clinic)}</div>
+      <div style="font-size:24px;font-weight:700;color:${headerColor};line-height:30px;">${currentYear} ${MONTHS[currentMonth]}</div>
+      <div style="font-size:14px;color:${subColor};margin-top:2px;">出诊排期表</div>
+      <div style="margin-top:12px;font-size:11px;color:${subColor};">
+        <span style="display:inline-block;margin-right:16px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:4px;vertical-align:middle;"></span>出诊</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f87171;margin-right:4px;vertical-align:middle;"></span>休息</span>
+      </div>
+    </div>
+    <div style="padding:12px 8px 16px;box-sizing:border-box;">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:6px;">
+        <tr>${WEEKDAYS.map(w => `<td style="text-align:center;font-size:11px;color:#94a3b8;padding:0 0 6px;">周${w}</td>`).join('')}</tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+        ${calendarRows}
+      </table>
+    </div>
+    <div style="padding:0 20px 20px;text-align:center;">
+      <div style="font-size:12px;color:#64748b;line-height:18px;">${footerText}</div>
+      ${phone ? `<div style="font-size:12px;color:#94a3b8;margin-top:6px;">咨询电话：${esc(phone)}</div>` : ''}
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;font-size:10px;color:#cbd5e1;letter-spacing:1px;">DENTAL CLINIC SCHEDULE</div>
+    </div>
+  </div>`;
+}
+
+function renderSchedulePreview() {
+  document.getElementById('month-label').textContent = `${currentYear}年 ${MONTHS[currentMonth]}`;
+  document.getElementById('schedule-preview').innerHTML = buildScheduleHTML(true);
+}
+
+// ==================== 术后护理 ====================
+function renderTemplateGrid() {
+  document.getElementById('tpl-grid').innerHTML = Object.entries(CARE_TEMPLATES).map(([key, t]) => `
+    <div class="tpl-card border border-slate-200 rounded-xl p-3 text-center relative ${key === selectedTemplate ? 'active' : ''}"
+      onclick="selectTemplate('${key}')">
+      ${key === selectedTemplate ? '<div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-500"></div>' : ''}
+      <div class="w-8 h-8 mx-auto rounded-lg mb-1.5 flex items-center justify-center text-xs font-bold text-white" style="background:${t.color}">${t.label.slice(0,2)}</div>
+      <div class="text-xs font-medium text-slate-700">${t.label}</div>
+    </div>`).join('');
+}
+
+function selectTemplate(key) {
+  selectedTemplate = key;
+  renderTemplateGrid();
+  renderCarePreview();
+}
+
+function buildCareHTML() {
+  const tpl = CARE_TEMPLATES[selectedTemplate];
+  const clinic = document.getElementById('care-clinic').value || '诊所名称';
+  const phone = document.getElementById('care-phone').value;
+  const followup = document.getElementById('care-followup').value;
+  const advice = document.getElementById('care-advice').value;
+  const c = tpl.color;
+
+  const steps = tpl.items.map((item, i) => `
+    <tr>
+      <td style="width:28px;padding:0 8px 10px 0;vertical-align:top;">
+        <div style="width:20px;height:20px;border-radius:10px;background:${c};color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:20px;">${i + 1}</div>
+      </td>
+      <td style="padding:0 0 10px 0;vertical-align:top;">
+        <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;box-sizing:border-box;">
+          <div style="font-size:14px;font-weight:600;color:#1e293b;line-height:20px;margin-bottom:4px;">${esc(item.t)}</div>
+          <div style="font-size:12px;color:#64748b;line-height:18px;">${esc(item.d)}</div>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
+    <div style="background:${MEDICAL_GRADIENT};padding:24px 20px 20px;box-sizing:border-box;">
+      <div style="font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:2px;margin-bottom:4px;">${esc(tpl.en)}</div>
+      <div style="font-size:18px;font-weight:700;color:#ffffff;line-height:26px;">${esc(tpl.title)}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;">${esc(clinic)}</div>
+    </div>
+    <div style="padding:16px;box-sizing:border-box;">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;">${steps}</table>
+      ${advice ? `<div style="margin-top:4px;padding:12px;border:1px dashed #99f6e4;border-radius:8px;background:#f0fdfa;box-sizing:border-box;">
+        <div style="font-size:12px;font-weight:600;color:#0f766e;margin-bottom:4px;">医生建议</div>
+        <div style="font-size:12px;color:#475569;line-height:18px;">${esc(advice)}</div>
+      </div>` : ''}
+      ${followup ? `<div style="margin-top:8px;padding:12px;border-radius:8px;background:#f1f5f9;box-sizing:border-box;">
+        <span style="font-size:12px;font-weight:600;color:#334155;">复诊时间：</span>
+        <span style="font-size:12px;color:#475569;">${esc(followup)}</span>
+      </div>` : ''}
+    </div>
+    <div style="padding:12px 20px 20px;text-align:center;border-top:1px solid #f1f5f9;">
+      ${phone ? `<div style="font-size:12px;color:#64748b;margin-bottom:8px;">如有不适请及时联系：${esc(phone)}</div>` : ''}
+      <div style="font-size:10px;color:#cbd5e1;letter-spacing:1px;">DENTAL CARE INSTRUCTIONS</div>
+    </div>
+  </div>`;
+}
+
+function renderCarePreview() {
+  document.getElementById('care-preview').innerHTML = buildCareHTML();
+}
+
+// ==================== 导出图片 ====================
+async function exportImage(type) {
+  const btn = event?.target?.closest('button');
+  if (btn) btn.classList.add('export-loading');
+
+  const host = document.createElement('div');
+  host.style.cssText = `position:fixed;left:-9999px;top:0;width:${EXPORT_W}px;z-index:-1;`;
+  host.innerHTML = type === 'schedule' ? buildScheduleHTML(false) : buildCareHTML();
+  document.body.appendChild(host);
+
+  const el = host.querySelector('.export-root');
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      foreignObjectRendering: false,
+      width: EXPORT_W,
+      windowWidth: EXPORT_W,
+      scrollX: 0,
+      scrollY: 0,
+    });
+    const link = document.createElement('a');
+    const prefix = type === 'schedule' ? '节假日排期' : '术后护理';
+    link.download = `${prefix}_${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (e) {
+    alert('导出失败，请重试：' + e.message);
+  } finally {
+    document.body.removeChild(host);
+    if (btn) btn.classList.remove('export-loading');
+  }
+}
+
+// ==================== 初始化 ====================
+async function init() {
+  renderStylePills();
+  renderTemplateGrid();
+  await fetchHolidays(currentYear);
+  renderSchedulePreview();
+  renderCarePreview();
+}
+
+init();
+</script>
+</body>
+</html>
