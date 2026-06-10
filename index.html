@@ -110,6 +110,10 @@
         </div>
 
         <!-- 风格选择 -->
+        <div id="asset-hint" class="hidden mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
+          节日海报背景图未找到。请确认 <strong>assets</strong> 文件夹与 <strong>index.html</strong> 在同一目录。完整项目请执行：
+          <code class="bg-amber-100 px-1 rounded">git clone https://github.com/Bovia/clinic_tools.git</code>
+        </div>
         <div class="mb-2">
           <label class="text-sm text-slate-600 mb-2 block">选择风格</label>
           <div id="style-pills" class="flex flex-wrap gap-2"></div>
@@ -614,8 +618,34 @@ function isPosterTheme(themeKey) {
   return Boolean(THEMES[themeKey]?.backgroundImage);
 }
 
+function isFileProtocol() {
+  return window.location.protocol === 'file:';
+}
+
+function resolveAssetPath(path) {
+  try {
+    return new URL(path, window.location.href).href;
+  } catch (_) {
+    return path;
+  }
+}
+
 function posterImageSrc(path) {
-  return `${path}?v=${POSTER_ASSET_VERSION}`;
+  return `${resolveAssetPath(path)}?v=${POSTER_ASSET_VERSION}`;
+}
+
+function showAssetMissingHint() {
+  const el = document.getElementById('asset-hint');
+  if (el) el.classList.remove('hidden');
+}
+
+function handlePosterImageError(img) {
+  img.style.display = 'none';
+  const root = img.closest('.export-root');
+  if (root && root.dataset.fallbackGradient) {
+    root.style.background = root.dataset.fallbackGradient;
+  }
+  showAssetMissingHint();
 }
 
 function preloadImage(src) {
@@ -623,8 +653,22 @@ function preloadImage(src) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
+    if (!isFileProtocol()) img.crossOrigin = 'anonymous';
     img.src = src;
   });
+}
+
+async function verifyPosterAssets() {
+  const paths = [...new Set(Object.values(THEMES).map(t => t.backgroundImage).filter(Boolean))];
+  const results = await Promise.all(paths.map(async (path) => {
+    try {
+      await preloadImage(posterImageSrc(path));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }));
+  if (results.some(ok => !ok)) showAssetMissingHint();
 }
 
 function updateSchedulePreviewSize(themeKey) {
@@ -698,8 +742,8 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   const footerText = '如有变动请以诊所通知为准';
   const glassPanel = getGlassPanelStyle(forExport);
 
-  return `<div class="export-root" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
-    <img src="${posterImageSrc(theme.backgroundImage)}" alt="" crossorigin="anonymous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;pointer-events:none;" />
+  return `<div class="export-root" data-fallback-gradient="${theme.gradient}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <img src="${posterImageSrc(theme.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;pointer-events:none;" />
     <div style="position:absolute;top:${inset.top};left:${inset.left};right:${inset.right};bottom:${inset.bottom};box-sizing:border-box;z-index:1;display:flex;flex-direction:column;">
       <div style="width:100%;flex:1;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;padding:12px 12px 10px;${glassPanel}">
         <div style="text-align:center;width:100%;margin-bottom:8px;flex-shrink:0;">
@@ -914,8 +958,8 @@ async function exportImage(type) {
     const exportH = posterTheme?.posterHeight || el.offsetHeight;
     const canvas = await html2canvas(el, {
       scale: 2,
-      useCORS: true,
-      allowTaint: false,
+      useCORS: !isFileProtocol(),
+      allowTaint: isFileProtocol(),
       backgroundColor: null,
       logging: false,
       foreignObjectRendering: false,
@@ -946,6 +990,7 @@ async function init() {
   await fetchHolidays(currentYear);
   renderSchedulePreview();
   renderCarePreview();
+  verifyPosterAssets();
 }
 
 init();
