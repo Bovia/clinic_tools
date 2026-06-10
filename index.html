@@ -28,11 +28,28 @@
     .cal-day:hover { background: #f1f5f9; }
     .preview-card { width: 360px; }
     .preview-card > .export-root { width: 360px; }
-    .preview-card.poster { height: 644px; }
-    .preview-card.poster > .export-root { height: 644px; }
     @media (max-width: 640px) {
       .preview-card { width: 100%; max-width: 360px; }
-      .preview-card.poster { height: auto; aspect-ratio: 572 / 1024; }
+    }
+    .preview-frame {
+      width: 100%;
+      height: min(520px, 58vh);
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .preview-scale-host {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .preview-scale-host .preview-card {
+      transform-origin: top left;
     }
 
     .export-loading { pointer-events: none; opacity: .6; }
@@ -49,12 +66,13 @@
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold text-lg shadow-md">齿</div>
         <div>
           <h1 class="text-lg font-bold text-slate-900">齿科设计助手</h1>
-          <p class="text-xs text-slate-500">排期表 · 术后须知 · 一键出图</p>
+          <p class="text-xs text-slate-500">排期表 · 术后须知 · 其他图文 · 一键出图</p>
         </div>
       </div>
       <nav class="flex gap-2 bg-slate-100 p-1 rounded-full">
-        <button id="tab-schedule" onclick="switchTab('schedule')" class="tab-btn tab-active px-5 py-2 rounded-full text-sm font-medium transition">节假日排期</button>
-        <button id="tab-care" onclick="switchTab('care')" class="tab-btn px-5 py-2 rounded-full text-sm font-medium text-slate-600 transition">术后护理</button>
+        <button id="tab-schedule" onclick="switchTab('schedule')" class="tab-btn tab-active px-4 py-2 rounded-full text-sm font-medium transition">节假日排期</button>
+        <button id="tab-care" onclick="switchTab('care')" class="tab-btn px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition">术后护理</button>
+        <button id="tab-other" onclick="switchTab('other')" class="tab-btn px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition">其他</button>
       </nav>
     </div>
   </header>
@@ -110,10 +128,6 @@
         </div>
 
         <!-- 风格选择 -->
-        <div id="asset-hint" class="hidden mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 leading-relaxed">
-          节日海报背景图未找到。请确认 <strong>assets</strong> 文件夹与 <strong>index.html</strong> 在同一目录。完整项目请执行：
-          <code class="bg-amber-100 px-1 rounded">git clone https://github.com/Bovia/clinic_tools.git</code>
-        </div>
         <div class="mb-2">
           <label class="text-sm text-slate-600 mb-2 block">选择风格</label>
           <div id="style-pills" class="flex flex-wrap gap-2"></div>
@@ -181,10 +195,72 @@
         </div>
       </div>
     </section>
+
+    <!-- ========== 其他图文 ========== -->
+    <section id="panel-other" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">其他图文</h2>
+            <p class="text-sm text-slate-500 mt-1">选择模板，填写文案信息，一键生成宣传图</p>
+          </div>
+          <button onclick="exportImage('other')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            导出图片
+          </button>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-5 gap-6 pb-8">
+        <div class="space-y-6 lg:col-span-2">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">选择模板</h3>
+            <div id="other-tpl-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">图文信息</h3>
+            <div class="space-y-3">
+              <div>
+                <label id="other-clinic-label" class="text-xs text-slate-500 mb-1 block">诊所名称</label>
+                <input id="other-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderOtherPreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
+                <input id="other-phone" type="text" placeholder="如：010-12345678" oninput="renderOtherPreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div id="other-address-wrap">
+                <label class="text-xs text-slate-500 mb-1 block">诊所地址（选填）</label>
+                <input id="other-address" type="text" placeholder="如：阳光大街001号" oninput="renderOtherPreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">副标题（选填）</label>
+                <input id="other-subtitle" type="text" placeholder="如：一袭白衣 心怀暖阳" oninput="renderOtherPreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 mb-1 block">正文文案（选填）</label>
+                <textarea id="other-message" rows="3" placeholder="如：你们用温柔双手 呵护生命希望" oninput="renderOtherPreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-3 w-full">
+          <div id="other-preview-frame" class="preview-frame">
+            <div id="other-preview-host" class="preview-scale-host">
+              <div id="other-preview" class="preview-card poster bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="text-center text-xs text-slate-400 py-6 border-t border-slate-100">
-  齿科设计助手 · 本地运行，无需数据库 · 节假日数据来自 timor.tech
+  齿科设计助手 · 门诊图文工具
   </footer>
 
 <script>
@@ -198,6 +274,7 @@ let holidayData = {};       // 'MM-DD' -> { holiday, name, date }
 let dayOverrides = {};      // 'YYYY-MM-DD' -> true(出诊) / false(休息)
 let selectedStyle = 'auto';
 let selectedTemplate = 'extraction';
+let selectedOtherTemplate = 'nurse';
 
 // ==================== 主题配置 ====================
 const THEMES = {
@@ -271,8 +348,11 @@ const THEMES = {
 
 const MEDICAL_GRADIENT = 'linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)';
 const EXPORT_W = 360;
+const DEFAULT_POSTER_H = 640;
+const PREVIEW_FRAME_PAD = 32;
+const imageSizeCache = {};
 /** 更换海报背景图后，把此数字 +1 可强制浏览器刷新缓存 */
-const POSTER_ASSET_VERSION = 2;
+const POSTER_ASSET_VERSION = 15;
 
 const HOLIDAY_THEME_MAP = {
   '春节': 'spring', '除夕': 'spring', '初一': 'spring', '初二': 'spring',
@@ -285,7 +365,6 @@ const CARE_TEMPLATES = {
   extraction: {
     label: '拔牙术后',
     title: '拔牙术后注意事项',
-    en: 'POST-EXTRACTION CARE',
     color: '#0891b2',
     items: [
       { t: '咬紧棉球', d: '术后请咬紧棉球30-40分钟，勿频繁更换。如仍有渗血，可更换新棉球继续咬紧。' },
@@ -299,7 +378,6 @@ const CARE_TEMPLATES = {
   implant: {
     label: '种植术后',
     title: '种植牙术后注意事项',
-    en: 'POST-IMPLANT CARE',
     color: '#0d9488',
     items: [
       { t: '咬紧纱布', d: '术后咬紧纱布30分钟，24小时内避免刷牙及漱口，防止种植体松动。' },
@@ -313,7 +391,6 @@ const CARE_TEMPLATES = {
   filling: {
     label: '补牙术后',
     title: '补牙术后注意事项',
-    en: 'POST-FILLING CARE',
     color: '#2563eb',
     items: [
       { t: '等待定型', d: '树脂补牙后2小时内避免进食，24小时内避免咬硬物，防止充填物脱落。' },
@@ -326,7 +403,6 @@ const CARE_TEMPLATES = {
   rootcanal: {
     label: '根管治疗',
     title: '根管治疗后注意事项',
-    en: 'POST-ROOT CANAL CARE',
     color: '#7c3aed',
     items: [
       { t: '暂封保护', d: '治疗期间避免用患侧咀嚼硬物，防止暂封材料脱落，如有脱落请立即就诊。' },
@@ -339,7 +415,6 @@ const CARE_TEMPLATES = {
   cleaning: {
     label: '洁牙术后',
     title: '洁牙术后注意事项',
-    en: 'POST-CLEANING CARE',
     color: '#06b6d4',
     items: [
       { t: '敏感护理', d: '洁牙后1-2天可能出现牙齿酸软敏感，属正常现象，避免过冷过热刺激。' },
@@ -352,7 +427,6 @@ const CARE_TEMPLATES = {
   ortho: {
     label: '正畸调整',
     title: '正畸调整后注意事项',
-    en: 'ORTHODONTIC CARE',
     color: '#6366f1',
     items: [
       { t: '酸软适应', d: '调整后2-5天牙齿酸软属正常反应，可进食软食，逐渐适应。' },
@@ -365,7 +439,6 @@ const CARE_TEMPLATES = {
   whitening: {
     label: '牙齿美白',
     title: '牙齿美白后注意事项',
-    en: 'POST-WHITENING CARE',
     color: '#ec4899',
     items: [
       { t: '敏感护理', d: '美白后24-48小时牙齿可能敏感，避免冷热刺激，可使用脱敏牙膏。' },
@@ -378,7 +451,6 @@ const CARE_TEMPLATES = {
   wisdom: {
     label: '智齿拔除',
     title: '智齿拔除术后注意事项',
-    en: 'WISDOM TOOTH EXTRACTION',
     color: '#0e7490',
     items: [
       { t: '压迫止血', d: '咬紧棉球40-60分钟，智齿创面较大，如有渗血可延长压迫时间。' },
@@ -391,14 +463,148 @@ const CARE_TEMPLATES = {
   },
 };
 
+// ==================== 其他图文模板 ====================
+const OTHER_TEMPLATES = {
+  nurse: {
+    label: '护士节',
+    type: 'image-overlay',
+    color: '#5ec8e8',
+    backgroundImage: 'assets/nurse-bg.png',
+    posterHeight: 640,
+    fallbackGradient: 'linear-gradient(180deg,#7ec8e8 0%,#d4b8e8 100%)',
+    title: '国际护士节',
+    titleTop: '5%',
+    titleSize: 24,
+    showAddress: true,
+    defaults: {
+      subtitle: '一袭白衣 心怀暖阳',
+      message: '你们用温柔双手 呵护生命希望',
+    },
+    overlays: [
+      { field: 'subtitle', top: '13%', fontSize: 13, color: '#ffffff', weight: 500 },
+      { field: 'message', top: '73%', fontSize: 14, color: '#ffffff', weight: 600 },
+    ],
+    footer: { bg: 'transparent', color: '#ffffff', height: 36 },
+  },
+  dental_day: {
+    label: '爱牙日',
+    type: 'dental-day-card',
+    color: '#0e7490',
+    backgroundImage: 'assets/dental-day-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#0e7490 0%,#06b6d4 45%,#a5f3fc 100%)',
+    title: '全国爱牙日',
+    showAddress: true,
+    defaults: {
+      clinic: '全国爱牙日',
+      subtitle: '2025.9.20',
+      message: '呵护您的口腔\n关爱您的健康',
+    },
+  },
+  doctor: {
+    label: '医师节',
+    type: 'gradient-poster',
+    color: '#1d4ed8',
+    posterHeight: 640,
+    gradient: 'linear-gradient(180deg,#1e3a8a 0%,#3b82f6 50%,#93c5fd 100%)',
+    title: '中国医师节',
+    showAddress: false,
+    defaults: {
+      subtitle: '敬佑生命 砥砺前行',
+      message: '感谢每一位守护健康的医者\n愿您行医路上，平安顺遂',
+    },
+  },
+  notice: {
+    label: '诊所通知',
+    type: 'notice-card',
+    color: '#3b82f6',
+    backgroundImage: 'assets/notice-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#e0f2fe 0%,#bae6fd 100%)',
+    titleLine1: '重要',
+    titleLine2: '诊所通知',
+    showAddress: true,
+    defaults: {
+      subtitle: '请您留意',
+      message: '# 通知内容\n• 营业时间调整|门诊时间有所变更，请提前确认后再到诊。\n• 预约到诊须知|建议提前预约，到诊时请携带有效证件。\n\n# 就诊时间\n上午：8:30 — 12:00 正常接诊\n下午：14:00 — 18:00 正常接诊',
+    },
+  },
+  promo: {
+    label: '活动宣传',
+    type: 'promo-card',
+    color: '#14b8a6',
+    backgroundImage: 'assets/promo-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#e0f2fe 0%,#bae6fd 100%)',
+    title: '全国爱牙日',
+    showAddress: true,
+    defaults: {
+      clinic: '全国爱牙日',
+      subtitle: '全民科普讲座',
+      message: '# 01|爱牙日\n自世界卫生组织倡导，每年开展口腔健康宣传，提升全民口腔保健意识。\n\n# 02|活动内容\n1|免费口腔检查\n2|专家现场答疑\n3|儿童涂氟体验\n4|爱牙科普讲解\n\n# 03|如何参加\n时间|2025年9月20日\n地点|欢迎到院咨询\n报名|电话预约，名额有限',
+    },
+  },
+  birthday: {
+    label: '生日祝福',
+    type: 'image-overlay',
+    color: '#d97706',
+    backgroundImage: 'assets/birthday-bg.png',
+    posterHeight: 640,
+    fallbackGradient: 'linear-gradient(180deg,#fef9c3 0%,#fde68a 100%)',
+    showAddress: false,
+    defaults: {
+      subtitle: '愿您齿健人康 笑口常开',
+      message: '在这个特别的日子里\n祝您生活美满，幸福安康',
+    },
+    overlays: [
+      { field: 'subtitle', top: '14%', fontSize: 14, color: '#92400e', weight: 600, shadow: false },
+      { field: 'message', top: '66%', fontSize: 13, color: '#78350f', weight: 400, multiline: true, shadow: false },
+    ],
+    footer: { bg: 'rgba(255,251,235,0.92)', color: '#78350f', height: 36 },
+  },
+  father: {
+    label: '父亲节',
+    type: 'image-overlay',
+    color: '#ea580c',
+    backgroundImage: 'assets/father-bg.png',
+    posterHeight: 640,
+    fallbackGradient: 'linear-gradient(180deg,#faf6f0 0%,#ede8df 100%)',
+    showAddress: false,
+    defaults: {
+      subtitle: '有一种爱 叫父爱如山',
+      message: '感恩相伴，愿您身体健康',
+    },
+    overlays: [
+      { field: 'subtitle', top: '4%', left: '28px', align: 'left', fontSize: 15, color: '#1e293b', weight: 600, shadow: false },
+      { field: 'message', top: '11%', left: '28px', align: 'left', fontSize: 12, color: '#475569', weight: 400, multiline: true, shadow: false },
+    ],
+    footer: { bg: 'rgba(255,255,255,0.9)', color: '#334155', height: 36 },
+  },
+  mother: {
+    label: '母亲节',
+    type: 'image-overlay',
+    color: '#e11d48',
+    backgroundImage: 'assets/mother-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#fff7ed 0%,#fce7f3 100%)',
+    showAddress: false,
+    defaults: {
+      subtitle: '愿岁月温柔以待',
+      message: '感恩有您，祝愿健康常乐',
+    },
+    overlays: [
+      { field: 'subtitle', top: '10px', left: '16px', right: '50%', align: 'left', fontSize: 12, color: '#b45309', weight: 600, lineHeight: 1.3, shadow: false },
+      { field: 'message', top: '30px', left: '16px', right: '50%', align: 'left', fontSize: 10, color: '#9a3412', weight: 400, lineHeight: 1.4, multiline: true, shadow: false },
+    ],
+    footer: { bg: 'rgba(255,255,255,0.9)', color: '#881337', height: 28 },
+  },
+};
+
 // ==================== Tab 切换 ====================
 function switchTab(tab) {
-  document.getElementById('panel-schedule').classList.toggle('hidden', tab !== 'schedule');
-  document.getElementById('panel-care').classList.toggle('hidden', tab !== 'care');
-  document.getElementById('tab-schedule').classList.toggle('tab-active', tab === 'schedule');
-  document.getElementById('tab-care').classList.toggle('tab-active', tab === 'care');
-  document.getElementById('tab-schedule').classList.toggle('text-slate-600', tab !== 'schedule');
-  document.getElementById('tab-care').classList.toggle('text-slate-600', tab !== 'care');
+  ['schedule', 'care', 'other'].forEach(name => {
+    document.getElementById(`panel-${name}`).classList.toggle('hidden', tab !== name);
+    const btn = document.getElementById(`tab-${name}`);
+    btn.classList.toggle('tab-active', tab === name);
+    btn.classList.toggle('text-slate-600', tab !== name);
+  });
+  if (tab === 'other') requestAnimationFrame(updateOtherPreviewScale);
 }
 
 // ==================== 节假日 API ====================
@@ -630,13 +836,200 @@ function resolveAssetPath(path) {
   }
 }
 
-function posterImageSrc(path) {
-  return `${resolveAssetPath(path)}?v=${POSTER_ASSET_VERSION}`;
+function isSameOriginUrl(url) {
+  try {
+    return new URL(url, window.location.href).origin === window.location.origin;
+  } catch (_) {
+    return false;
+  }
 }
 
-function showAssetMissingHint() {
-  const el = document.getElementById('asset-hint');
-  if (el) el.classList.remove('hidden');
+function getEmbeddedAsset(imagePath) {
+  const entry = window.EMBEDDED_ASSETS?.[imagePath];
+  if (!entry) return null;
+  return typeof entry === 'string' ? { dataUrl: entry } : entry;
+}
+
+function loadEmbeddedAssets() {
+  if (window.EMBEDDED_ASSETS || !isFileProtocol()) return Promise.resolve();
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = resolveAssetPath('assets-embed.js');
+    s.onload = resolve;
+    s.onerror = resolve;
+    document.head.appendChild(s);
+  });
+}
+
+function parseClinicInfoText(text) {
+  const map = { '诊所名称': 'name', '联系电话': 'phone', '诊所地址': 'address' };
+  const info = {};
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const sep = trimmed.indexOf('=');
+    if (sep < 0) continue;
+    const key = map[trimmed.slice(0, sep).trim()];
+    if (key) info[key] = trimmed.slice(sep + 1).trim();
+  }
+  return info;
+}
+
+async function loadClinicInfo() {
+  if (window.CLINIC_INFO) return;
+  if (!isFileProtocol()) {
+    try {
+      const res = await fetch(resolveAssetPath('clinic-info.txt'));
+      if (res.ok) {
+        window.CLINIC_INFO = parseClinicInfoText(await res.text());
+        return;
+      }
+    } catch (_) { /* fallback */ }
+  }
+  await new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = resolveAssetPath('clinic-info.js');
+    s.onload = resolve;
+    s.onerror = resolve;
+    document.head.appendChild(s);
+  });
+}
+
+function applyClinicInfoToForms() {
+  const info = window.CLINIC_INFO;
+  if (!info) return;
+  if (info.name) {
+    document.getElementById('sch-clinic').value = info.name;
+    document.getElementById('care-clinic').value = info.name;
+    const otherType = OTHER_TEMPLATES[selectedOtherTemplate]?.type;
+    if (otherType !== 'dental-day-card' && otherType !== 'promo-card') {
+      document.getElementById('other-clinic').value = info.name;
+    }
+  }
+  if (info.phone) {
+    document.getElementById('sch-phone').value = info.phone;
+    document.getElementById('care-phone').value = info.phone;
+    document.getElementById('other-phone').value = info.phone;
+  }
+  if (info.address) {
+    document.getElementById('other-address').value = info.address;
+  }
+}
+
+function imageSizeCacheKey(imagePath) {
+  return `${imagePath}@${POSTER_ASSET_VERSION}`;
+}
+
+function posterHeightFor(imagePath, fallback = DEFAULT_POSTER_H) {
+  const size = imagePath && imageSizeCache[imageSizeCacheKey(imagePath)];
+  if (!size || !size.w) return fallback;
+  return Math.round(EXPORT_W * size.h / size.w);
+}
+
+function assetPathFromSrc(src) {
+  if (!src) return null;
+  const m = String(src).match(/assets\/[^?&#]+/);
+  return m ? m[0] : null;
+}
+
+function canvasFromImage(img) {
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  c.getContext('2d').drawImage(img, 0, 0);
+  return c.toDataURL('image/png');
+}
+
+function findLoadedImage(src) {
+  const base = src.split('?')[0];
+  const path = assetPathFromSrc(src);
+  return [...document.querySelectorAll('img')]
+    .find(img => img.complete && img.naturalWidth > 0 && (
+      img.src === src || img.src.startsWith(base) || (path && img.src.includes(path))
+    ));
+}
+
+async function ensureImageSize(imagePath) {
+  if (!imagePath) return null;
+  const key = imageSizeCacheKey(imagePath);
+  if (imageSizeCache[key]?.w) return imageSizeCache[key];
+
+  const embedded = getEmbeddedAsset(imagePath);
+  if (embedded?.dataUrl) {
+    const entry = { w: embedded.w, h: embedded.h, dataUrl: embedded.dataUrl };
+    if (!entry.w || !entry.h) {
+      try {
+        const img = await preloadImage(embedded.dataUrl);
+        entry.w = img.naturalWidth;
+        entry.h = img.naturalHeight;
+      } catch (_) { /* keep partial */ }
+    }
+    imageSizeCache[key] = entry;
+    return entry;
+  }
+
+  try {
+    const img = await preloadImage(posterImageSrc(imagePath));
+    const entry = { w: img.naturalWidth, h: img.naturalHeight };
+    try { entry.dataUrl = canvasFromImage(img); } catch (_) { /* retry on export */ }
+    imageSizeCache[key] = entry;
+    return entry;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function preloadAllBackgroundSizes() {
+  const paths = new Set();
+  Object.values(THEMES).forEach(t => { if (t.backgroundImage) paths.add(t.backgroundImage); });
+  Object.values(OTHER_TEMPLATES).forEach(t => { if (t.backgroundImage) paths.add(t.backgroundImage); });
+  await Promise.all([...paths].map(p => ensureImageSize(p)));
+}
+
+function posterDisplayHeight(tpl) {
+  if (!tpl?.backgroundImage) return DEFAULT_POSTER_H;
+  return posterHeightFor(tpl.backgroundImage, DEFAULT_POSTER_H);
+}
+
+function applyPreviewHeight(previewEl, imagePath, fallback, tpl) {
+  if (imagePath) {
+    previewEl.classList.add('poster');
+    const h = tpl ? posterDisplayHeight(tpl) : posterHeightFor(imagePath, fallback);
+    previewEl.style.height = h + 'px';
+  } else {
+    previewEl.classList.remove('poster');
+    previewEl.style.height = '';
+  }
+}
+
+function updateOtherPreviewScale() {
+  const frame = document.getElementById('other-preview-frame');
+  const host = document.getElementById('other-preview-host');
+  const preview = document.getElementById('other-preview');
+  if (!frame || !host || !preview) return;
+
+  preview.style.transform = 'none';
+  const baseW = EXPORT_W;
+  const baseH = parseInt(preview.style.height, 10) || preview.offsetHeight || DEFAULT_POSTER_H;
+  if (!baseH) return;
+
+  const maxW = Math.max(120, frame.clientWidth - PREVIEW_FRAME_PAD);
+  const maxH = Math.max(120, frame.clientHeight - PREVIEW_FRAME_PAD);
+  const scale = Math.min(maxW / baseW, maxH / baseH);
+  const displayW = Math.ceil(baseW * scale);
+  const displayH = Math.ceil(baseH * scale);
+
+  preview.style.transform = Math.abs(scale - 1) > 0.01 ? `scale(${scale})` : 'none';
+  host.style.width = displayW + 'px';
+  host.style.height = displayH + 'px';
+}
+
+function posterImageSrc(path) {
+  if (isFileProtocol()) {
+    const embedded = getEmbeddedAsset(path);
+    if (embedded?.dataUrl) return embedded.dataUrl;
+  }
+  return `${resolveAssetPath(path)}?v=${POSTER_ASSET_VERSION}`;
 }
 
 function handlePosterImageError(img) {
@@ -645,7 +1038,6 @@ function handlePosterImageError(img) {
   if (root && root.dataset.fallbackGradient) {
     root.style.background = root.dataset.fallbackGradient;
   }
-  showAssetMissingHint();
 }
 
 function preloadImage(src) {
@@ -653,22 +1045,73 @@ function preloadImage(src) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    if (!isFileProtocol()) img.crossOrigin = 'anonymous';
+    if (!src.startsWith('data:') && !isSameOriginUrl(src) && !isFileProtocol()) {
+      img.crossOrigin = 'anonymous';
+    }
     img.src = src;
   });
 }
 
-async function verifyPosterAssets() {
-  const paths = [...new Set(Object.values(THEMES).map(t => t.backgroundImage).filter(Boolean))];
-  const results = await Promise.all(paths.map(async (path) => {
-    try {
-      await preloadImage(posterImageSrc(path));
-      return true;
-    } catch (_) {
-      return false;
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function imageToDataUrl(src) {
+  if (!src || src.startsWith('data:')) return src;
+
+  const path = assetPathFromSrc(src);
+  if (path) {
+    const cached = imageSizeCache[imageSizeCacheKey(path)];
+    if (cached?.dataUrl) return cached.dataUrl;
+    const embedded = getEmbeddedAsset(path);
+    if (embedded?.dataUrl) return embedded.dataUrl;
+  }
+
+  if (!isFileProtocol() && isSameOriginUrl(src)) {
+    for (const trySrc of [src, src.split('?')[0]]) {
+      try {
+        const res = await fetch(trySrc);
+        if (res.ok) return blobToDataUrl(await res.blob());
+      } catch (_) { /* fallback */ }
     }
-  }));
-  if (results.some(ok => !ok)) showAssetMissingHint();
+  }
+
+  const loadedImg = findLoadedImage(src);
+  if (loadedImg) {
+    try { return canvasFromImage(loadedImg); } catch (_) { /* fallback */ }
+  }
+
+  for (const trySrc of [src, src.split('?')[0]]) {
+    try {
+      return canvasFromImage(await preloadImage(trySrc));
+    } catch (_) { /* try next */ }
+  }
+
+  throw new Error('image inline failed');
+}
+
+async function waitForImages(root) {
+  const imgs = [...root.querySelectorAll('img')];
+  await Promise.all(imgs.map(img => new Promise(resolve => {
+    if (img.complete && img.naturalWidth > 0) return resolve();
+    img.onload = resolve;
+    img.onerror = resolve;
+  })));
+}
+
+async function inlineImagesForExport(root) {
+  const imgs = [...root.querySelectorAll('img')];
+  for (const img of imgs) {
+    if (!img.getAttribute('src') || img.src.startsWith('data:')) continue;
+    const dataUrl = await imageToDataUrl(img.src);
+    img.src = dataUrl;
+    img.removeAttribute('crossorigin');
+  }
 }
 
 function updateSchedulePreviewSize(themeKey) {
@@ -693,7 +1136,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   const clinic = document.getElementById('sch-clinic').value || '诊所名称';
   const phone = document.getElementById('sch-phone').value;
   const customMsg = getSchCustomGreeting();
-  const h = theme.posterHeight || 644;
+  const h = posterHeightFor(theme.backgroundImage, 644);
   const inset = theme.contentInset || { top: '13%', left: '8%', right: '8%', bottom: '24%' };
   const titleColor = theme.color || '#b91c1c';
   const GAP = 3;
@@ -743,7 +1186,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   const glassPanel = getGlassPanelStyle(forExport);
 
   return `<div class="export-root" data-fallback-gradient="${theme.gradient}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
-    <img src="${posterImageSrc(theme.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;pointer-events:none;" />
+    <img src="${posterImageSrc(theme.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;pointer-events:none;" />
     <div style="position:absolute;top:${inset.top};left:${inset.left};right:${inset.right};bottom:${inset.bottom};box-sizing:border-box;z-index:1;display:flex;flex-direction:column;">
       <div style="width:100%;flex:1;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;padding:12px 12px 10px;${glassPanel}">
         <div style="text-align:center;width:100%;margin-bottom:8px;flex-shrink:0;">
@@ -852,17 +1295,20 @@ function buildScheduleHTML(interactive) {
     </div>
     <div style="padding:0 20px 20px;text-align:center;">
       <div style="font-size:12px;color:#64748b;line-height:18px;">${footerText}</div>
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9;font-size:10px;color:#cbd5e1;letter-spacing:1px;">DENTAL CLINIC SCHEDULE</div>
     </div>
   </div>`;
 }
 
-function renderSchedulePreview() {
+async function renderSchedulePreview() {
   document.getElementById('month-label').textContent = `${currentYear}年 ${MONTHS[currentMonth]}`;
   updateGreetingPlaceholder();
   const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
+  const theme = THEMES[themeKey];
+  if (theme?.backgroundImage) await ensureImageSize(theme.backgroundImage);
   updateSchedulePreviewSize(themeKey);
-  document.getElementById('schedule-preview').innerHTML = buildScheduleHTML(true);
+  const preview = document.getElementById('schedule-preview');
+  preview.innerHTML = buildScheduleHTML(true);
+  applyPreviewHeight(preview, theme?.backgroundImage, 644);
 }
 
 // ==================== 术后护理 ====================
@@ -905,7 +1351,6 @@ function buildCareHTML() {
 
   return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
     <div style="background:${MEDICAL_GRADIENT};padding:24px 20px 20px;box-sizing:border-box;">
-      <div style="font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:2px;margin-bottom:4px;">${esc(tpl.en)}</div>
       <div style="font-size:18px;font-weight:700;color:#ffffff;line-height:26px;">${esc(tpl.title)}</div>
       <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;">${esc(clinic)}</div>
     </div>
@@ -921,8 +1366,7 @@ function buildCareHTML() {
       </div>` : ''}
     </div>
     <div style="padding:12px 20px 20px;text-align:center;border-top:1px solid #f1f5f9;">
-      ${phone ? `<div style="font-size:12px;color:#64748b;margin-bottom:8px;">如有不适请及时联系：${esc(phone)}</div>` : ''}
-      <div style="font-size:10px;color:#cbd5e1;letter-spacing:1px;">DENTAL CARE INSTRUCTIONS</div>
+      ${phone ? `<div style="font-size:12px;color:#64748b;">如有不适请及时联系：${esc(phone)}</div>` : ''}
     </div>
   </div>`;
 }
@@ -931,36 +1375,465 @@ function renderCarePreview() {
   document.getElementById('care-preview').innerHTML = buildCareHTML();
 }
 
+// ==================== 其他图文 ====================
+function getOtherFormData() {
+  const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
+  const d = tpl.defaults || {};
+  return {
+    clinic: document.getElementById('other-clinic').value || d.clinic || '诊所名称',
+    phone: document.getElementById('other-phone').value || d.phone || '',
+    address: document.getElementById('other-address').value || d.address || '',
+    subtitle: document.getElementById('other-subtitle').value || d.subtitle || '',
+    message: document.getElementById('other-message').value || d.message || '',
+  };
+}
+
+function buildOtherImageOverlayHTML(tpl, data) {
+  const h = posterDisplayHeight(tpl);
+  const titleColor = tpl.titleColor || '#ffffff';
+  const titleIsLeft = tpl.titleAlign === 'left';
+  const titleHtml = tpl.title ? `<div style="position:absolute;top:${tpl.titleTop || '5%'};${titleIsLeft ? `left:${tpl.titleLeft || '28px'};right:40px;text-align:left;` : 'left:0;right:0;text-align:center;padding:0 20px;'}box-sizing:border-box;z-index:2;">
+    <div style="font-size:${tpl.titleSize || 22}px;font-weight:700;color:${titleColor};line-height:1.3;${titleIsLeft ? '' : 'text-shadow:0 2px 8px rgba(0,0,0,0.25);'}">${esc(tpl.title)}</div>
+  </div>` : '';
+  const overlays = (tpl.overlays || []).map(o => {
+    const text = data[o.field];
+    if (!text) return '';
+    const whiteSpace = o.multiline ? 'white-space:pre-line;' : '';
+    const isLeft = o.align === 'left';
+    const shadow = o.shadow === false ? '' : 'text-shadow:0 1px 4px rgba(0,0,0,0.2);';
+    const pos = isLeft
+      ? `left:${o.left || '28px'};right:${o.right || '48px'};text-align:left;`
+      : 'left:0;right:0;text-align:center;padding:0 28px;';
+    return `<div style="position:absolute;top:${o.top};${pos}box-sizing:border-box;z-index:2;">
+      <div style="font-size:${o.fontSize}px;font-weight:${o.weight || 500};color:${o.color};line-height:${o.lineHeight || 1.6};${shadow}${whiteSpace}">${esc(text)}</div>
+    </div>`;
+  }).join('');
+
+  const footerParts = [];
+  if (tpl.showAddress) {
+    if (data.phone) footerParts.push(`TEL ${esc(data.phone)}`);
+    if (data.address) footerParts.push(esc(data.address));
+  } else {
+    if (data.clinic && data.clinic !== '诊所名称') footerParts.push(esc(data.clinic));
+    if (data.phone) footerParts.push(`咨询电话：${esc(data.phone)}`);
+  }
+  const footerText = footerParts.join(tpl.showAddress ? ' | ' : '  ');
+
+  return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center center;display:block;" />
+    ${titleHtml}${overlays}
+    ${footerText ? `<div style="position:absolute;left:0;right:0;bottom:0;height:${tpl.footer.height}px;background:${tpl.footer.bg};display:table;width:100%;z-index:2;">
+      <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:10px;color:${tpl.footer.color};padding:0 12px;line-height:14px;">${footerText}</div>
+    </div>` : ''}
+  </div>`;
+}
+
+function parsePromoSections(text) {
+  const sections = [];
+  let current = null;
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith('# ')) {
+      const body = trimmed.slice(2);
+      const pipe = body.indexOf('|');
+      current = pipe > -1
+        ? { num: body.slice(0, pipe).trim(), label: body.slice(pipe + 1).trim(), items: [] }
+        : { num: '', label: body, items: [] };
+      sections.push(current);
+      continue;
+    }
+    if (!current) {
+      current = { num: '', label: '', items: [] };
+      sections.push(current);
+    }
+    const pipe = trimmed.indexOf('|');
+    if (/^\d+\|/.test(trimmed)) {
+      const n = trimmed.slice(0, pipe);
+      current.items.push({ type: 'num', n, text: trimmed.slice(pipe + 1).trim() });
+    } else if (pipe > -1) {
+      current.items.push({ type: 'kv', key: trimmed.slice(0, pipe).trim(), val: trimmed.slice(pipe + 1).trim() });
+    } else {
+      current.items.push({ type: 'text', text: trimmed });
+    }
+  }
+  return sections;
+}
+
+function buildPromoSectionHTML(sections) {
+  const accent = '#14b8a6';
+  return sections.map(sec => {
+    const badge = sec.label
+      ? `<div style="display:inline-block;background:${accent};color:#fff;font-size:9px;padding:3px 10px;border-radius:10px;font-weight:600;position:relative;z-index:1;">${esc(sec.label)}</div>`
+      : '';
+    const num = sec.num
+      ? `<div style="position:absolute;left:0;top:-10px;font-size:40px;font-weight:800;color:rgba(20,184,196,0.18);line-height:1;pointer-events:none;">${esc(sec.num)}</div>`
+      : '';
+    const items = sec.items.map(item => {
+      if (item.type === 'num') {
+        return `<div style="display:flex;gap:5px;margin-bottom:4px;align-items:flex-start;">
+          <div style="width:13px;height:13px;background:${accent};color:#fff;font-size:7px;line-height:13px;text-align:center;border-radius:2px;flex-shrink:0;">${esc(item.n)}</div>
+          <div style="font-size:9px;color:#334155;line-height:13px;flex:1;">${esc(item.text)}</div>
+        </div>`;
+      }
+      if (item.type === 'kv') {
+        return `<div style="font-size:9px;line-height:14px;margin-bottom:3px;">
+          <span style="color:#64748b;">${esc(item.key)}</span> <span style="color:#334155;">${esc(item.val)}</span>
+        </div>`;
+      }
+      return `<div style="font-size:9px;color:#334155;line-height:14px;margin-top:5px;">${esc(item.text)}</div>`;
+    }).join('');
+    return `<div style="position:relative;margin-bottom:6px;padding-left:2px;">${num}${badge}${items}</div>`;
+  }).join('');
+}
+
+// 坐标按 promo-bg.png（724×1024）实测：橙条 y243-303 x128-596，正文安全区 y312-656 x155-568
+function promoLayoutCoords(h) {
+  const rh = h / 1024;
+  const rw = EXPORT_W / 724;
+  return {
+    titleTop: Math.round(112 * rh),
+    ribbonTop: Math.round(252 * rh),
+    ribbonH: Math.round(48 * rh),
+    ribbonLeft: Math.round(128 * rw),
+    ribbonRight: Math.round(128 * rw),
+    contentTop: Math.round(312 * rh),
+    contentLeft: Math.round(155 * rw),
+    contentRight: Math.round(156 * rw),
+    contentBottom: Math.round(368 * rh),
+  };
+}
+
+function buildOtherPromoHTML(tpl, data) {
+  const h = posterDisplayHeight(tpl);
+  const lay = promoLayoutCoords(h);
+  const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
+  const sections = parsePromoSections(data.message || '');
+  const cardHtml = buildPromoSectionHTML(sections);
+  const accent = '#047857';
+
+  const ribbonHtml = data.subtitle
+    ? `<div style="position:absolute;top:${lay.ribbonTop}px;left:${lay.ribbonLeft}px;right:${lay.ribbonRight}px;height:${lay.ribbonH}px;display:table;z-index:2;">
+        <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:10px;color:#ffffff;font-weight:600;letter-spacing:1px;line-height:1.1;padding:0 8px;">${esc(data.subtitle)}</div>
+      </div>`
+    : '';
+
+  return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
+    <div style="position:absolute;top:${lay.titleTop}px;left:0;right:0;text-align:center;z-index:2;padding:0 20px;box-sizing:border-box;">
+      <div style="font-size:24px;font-weight:800;color:${accent};line-height:1.1;letter-spacing:2px;text-shadow:0 2px 0 #065f46,0 3px 6px rgba(0,0,0,0.12);">${esc(titleText)}</div>
+    </div>
+    ${ribbonHtml}
+    <div style="position:absolute;top:${lay.contentTop}px;left:${lay.contentLeft}px;right:${lay.contentRight}px;bottom:${lay.contentBottom}px;z-index:2;overflow:hidden;box-sizing:border-box;">
+      ${cardHtml}
+    </div>
+  </div>`;
+}
+
+function parseNoticeSections(text) {
+  const sections = [];
+  let current = null;
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith('# ')) {
+      current = { header: trimmed.slice(2), items: [] };
+      sections.push(current);
+      continue;
+    }
+    if (!current) {
+      current = { header: '', items: [] };
+      sections.push(current);
+    }
+    if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+      const body = trimmed.slice(2);
+      const pipe = body.indexOf('|');
+      if (pipe > -1) {
+        current.items.push({ title: body.slice(0, pipe).trim(), desc: body.slice(pipe + 1).trim() });
+      } else {
+        current.items.push({ text: body });
+      }
+    } else {
+      current.items.push({ text: trimmed });
+    }
+  }
+  return sections;
+}
+
+function buildNoticeSectionHTML(sections) {
+  const accent = '#3b82f6';
+  return sections.map(sec => {
+    const header = sec.header
+      ? `<div style="font-size:12px;font-weight:600;color:${accent};margin-bottom:8px;line-height:18px;">
+          <span style="display:inline-block;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:5px solid ${accent};margin-right:6px;vertical-align:middle;"></span>${esc(sec.header)}
+        </div>`
+      : '';
+    const items = sec.items.map(item => {
+      if (item.title) {
+        return `<div style="margin-bottom:10px;">
+          <div style="font-size:11px;font-weight:700;color:#1e293b;line-height:16px;">• ${esc(item.title)}</div>
+          ${item.desc ? `<div style="font-size:10px;color:#64748b;line-height:15px;margin-top:3px;padding-left:10px;">${esc(item.desc)}</div>` : ''}
+        </div>`;
+      }
+      return `<div style="font-size:10px;color:#475569;line-height:16px;margin-bottom:6px;">${esc(item.text)}</div>`;
+    }).join('');
+    return `<div style="margin-bottom:14px;">${header}${items}</div>`;
+  }).join('');
+}
+
+function noticeLayoutCoords(h) {
+  const rw = EXPORT_W / 729;
+  const rh = h / 1024;
+  return {
+    titleTop: Math.round(52 * rh),
+    padX: Math.round(103 * rw),
+    pillTop: Math.round(270 * rh),
+    pillLeft: Math.round(100 * rw),
+    pillW: Math.round(176 * rw),
+    pillH: Math.round(34 * rh),
+    pillFont: 10,
+    contentTop: Math.round(330 * rh),
+    contentBottom: Math.round(208 * rh),
+    footerBottom: Math.round(24 * rh),
+  };
+}
+
+function dentalDayLayoutCoords(h) {
+  const rh = h / 1024;
+  const rw = EXPORT_W / 569;
+  return {
+    titleTop: Math.round(498 * rh),
+    dateTop: Math.round(558 * rh),
+    sub1Top: Math.round(618 * rh),
+    sub2Top: Math.round(658 * rh),
+    footerTop: Math.round(928 * rh),
+    footerLeft: Math.round(128 * rw),
+    footerRight: Math.round(18 * rw),
+  };
+}
+
+function buildOtherDentalDayHTML(tpl, data) {
+  const h = posterDisplayHeight(tpl);
+  const lay = dentalDayLayoutCoords(h);
+  const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
+  const msgLines = (data.message || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const sub1 = msgLines[0] || '';
+  const sub2 = msgLines[1] || '';
+
+  const centerText = (top, text, size, weight, spacing) => text
+    ? `<div style="position:absolute;top:${top}px;left:0;right:0;text-align:center;z-index:2;padding:0 20px;box-sizing:border-box;">
+        <div style="font-size:${size}px;font-weight:${weight};color:#ffffff;line-height:1.4;${spacing || ''}">${esc(text)}</div>
+      </div>`
+    : '';
+
+  const footerLines = [];
+  if (data.phone) footerLines.push(`欢迎到诊咨询  电话：${esc(data.phone)}`);
+  if (data.address) footerLines.push(`地址：${esc(data.address)}`);
+
+  const footerHtml = footerLines.length
+    ? `<div style="position:absolute;top:${lay.footerTop}px;left:16px;right:16px;z-index:2;text-align:center;">
+        ${footerLines.map((line, i) => `<div style="font-size:10px;color:#334155;line-height:15px;${i ? 'margin-top:4px;' : ''}">${line}</div>`).join('')}
+      </div>`
+    : '';
+
+  return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
+    ${centerText(lay.titleTop, titleText, 28, 800, 'letter-spacing:3px;line-height:1.2;')}
+    ${centerText(lay.dateTop, data.subtitle, 11, 400, 'letter-spacing:1px;opacity:0.95;')}
+    ${centerText(lay.sub1Top, sub1, 16, 400, 'letter-spacing:2px;')}
+    ${centerText(lay.sub2Top, sub2, 16, 400, 'letter-spacing:2px;')}
+    ${footerHtml}
+  </div>`;
+}
+
+function buildOtherNoticeCardHTML(tpl, data) {
+  const h = posterDisplayHeight(tpl);
+  const lay = noticeLayoutCoords(h);
+  const titleLine1 = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.titleLine1 || '重要');
+  const titleLine2 = tpl.titleLine2 || '诊所通知';
+  const sections = parseNoticeSections(data.message || '');
+  const cardHtml = buildNoticeSectionHTML(sections);
+  const accent = tpl.color || '#3b82f6';
+
+  const pillHtml = data.subtitle
+    ? `<div style="position:absolute;top:${lay.pillTop}px;left:${lay.pillLeft}px;width:${lay.pillW}px;height:${lay.pillH}px;display:table;z-index:2;">
+        <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:${lay.pillFont}px;color:#ffffff;font-weight:500;white-space:nowrap;letter-spacing:0.5px;line-height:1;">${esc(data.subtitle)}</div>
+      </div>`
+    : '';
+
+  const footerParts = [];
+  if (data.phone) footerParts.push(`电话：${esc(data.phone)}`);
+  if (data.address) footerParts.push(`地址：${esc(data.address)}`);
+  const footerHtml = footerParts.length
+    ? `<div style="position:absolute;left:${lay.padX}px;right:${lay.padX}px;bottom:${lay.footerBottom}px;z-index:2;text-align:center;">
+        ${footerParts.map((p, i) => `<div style="font-size:10px;color:#334155;line-height:16px;${i ? 'margin-top:3px;' : ''}">${p}</div>`).join('')}
+      </div>`
+    : '';
+
+  return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
+    <div style="position:absolute;top:${lay.titleTop}px;left:${lay.padX}px;right:${lay.padX}px;z-index:2;">
+      <div style="font-size:24px;font-weight:800;color:${accent};line-height:1.15;letter-spacing:0.5px;">${esc(titleLine1)}</div>
+      <div style="font-size:24px;font-weight:800;color:${accent};line-height:1.15;letter-spacing:0.5px;">${esc(titleLine2)}</div>
+    </div>
+    ${pillHtml}
+    <div style="position:absolute;top:${lay.contentTop}px;left:${lay.padX}px;right:${lay.padX}px;bottom:${lay.contentBottom}px;z-index:2;overflow:hidden;box-sizing:border-box;padding:4px 6px;">
+      ${cardHtml}
+    </div>
+    ${footerHtml}
+  </div>`;
+}
+
+function buildOtherGradientPosterHTML(tpl, data) {
+  const h = DEFAULT_POSTER_H;
+  const isDark = !tpl.dark;
+  const titleColor = tpl.dark ? '#0f172a' : '#ffffff';
+  const subColor = tpl.dark ? '#475569' : 'rgba(255,255,255,0.9)';
+  const msgColor = tpl.dark ? '#334155' : 'rgba(255,255,255,0.95)';
+  const accent = tpl.color || '#0d9488';
+  const msgLines = data.message.split('\n').filter(Boolean);
+
+  const msgHtml = msgLines.map((line, i) =>
+    `<div style="font-size:${i === 0 ? 15 : 13}px;font-weight:${i === 0 ? 600 : 400};color:${msgColor};line-height:22px;margin-top:${i ? 6 : 0}px;">${esc(line)}</div>`
+  ).join('');
+
+  const decoCircle = tpl.dark
+    ? `<div style="width:120px;height:120px;border-radius:60px;background:linear-gradient(135deg,${accent}22,${accent}11);border:2px solid ${accent}33;margin:0 auto 20px;display:table;"><div style="display:table-cell;vertical-align:middle;text-align:center;font-size:36px;font-weight:700;color:${accent};">${esc(tpl.title.slice(0,1))}</div></div>`
+    : `<div style="width:140px;height:140px;border-radius:70px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.35);margin:0 auto 24px;display:table;"><div style="display:table-cell;vertical-align:middle;text-align:center;font-size:40px;font-weight:700;color:#ffffff;">${esc(tpl.title.slice(0,1))}</div></div>`;
+
+  return `<div class="export-root" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:${tpl.gradient};font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+    <div style="padding:36px 24px 0;text-align:center;box-sizing:border-box;">
+      <div style="font-size:26px;font-weight:700;color:${titleColor};line-height:34px;letter-spacing:1px;">${esc(tpl.title)}</div>
+      ${data.subtitle ? `<div style="font-size:14px;color:${subColor};margin-top:10px;line-height:20px;">${esc(data.subtitle)}</div>` : ''}
+    </div>
+    <div style="padding:28px 24px 0;text-align:center;">
+      ${decoCircle}
+    </div>
+    <div style="padding:0 28px;text-align:center;">
+      ${msgHtml}
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;padding:16px 20px;background:${tpl.dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.15)'};box-sizing:border-box;text-align:center;">
+      <div style="font-size:14px;font-weight:600;color:${tpl.dark ? '#0f172a' : '#ffffff'};line-height:20px;">${esc(data.clinic)}</div>
+      ${data.phone ? `<div style="font-size:12px;color:${tpl.dark ? '#64748b' : 'rgba(255,255,255,0.9)'};margin-top:4px;">咨询电话：${esc(data.phone)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildOtherHTML() {
+  const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
+  const data = getOtherFormData();
+  if (tpl.type === 'notice-card') return buildOtherNoticeCardHTML(tpl, data);
+  if (tpl.type === 'promo-card') return buildOtherPromoHTML(tpl, data);
+  if (tpl.type === 'dental-day-card') return buildOtherDentalDayHTML(tpl, data);
+  if (tpl.type === 'image-overlay') return buildOtherImageOverlayHTML(tpl, data);
+  return buildOtherGradientPosterHTML(tpl, data);
+}
+
+function renderOtherTemplateGrid() {
+  document.getElementById('other-tpl-grid').innerHTML = Object.entries(OTHER_TEMPLATES).map(([key, t]) => `
+    <div class="tpl-card border border-slate-200 rounded-xl p-3 text-center relative ${key === selectedOtherTemplate ? 'active' : ''}"
+      onclick="selectOtherTemplate('${key}')">
+      ${key === selectedOtherTemplate ? '<div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-500"></div>' : ''}
+      <div class="w-8 h-8 mx-auto rounded-lg mb-1.5 flex items-center justify-center text-xs font-bold text-white" style="background:${t.color}">${t.label.slice(0,2)}</div>
+      <div class="text-xs font-medium text-slate-700">${t.label}</div>
+    </div>`).join('');
+}
+
+function applyOtherTemplateDefaults() {
+  const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
+  const d = tpl.defaults || {};
+  const clinic = document.getElementById('other-clinic');
+  const phone = document.getElementById('other-phone');
+  const address = document.getElementById('other-address');
+  const sub = document.getElementById('other-subtitle');
+  const msg = document.getElementById('other-message');
+  if ('clinic' in d) clinic.value = d.clinic || '';
+  if ('phone' in d && !window.CLINIC_INFO?.phone) phone.value = d.phone || '';
+  if ('address' in d && !window.CLINIC_INFO?.address) address.value = d.address || '';
+  sub.value = d.subtitle || '';
+  msg.value = d.message || '';
+  sub.placeholder = tpl.type === 'dental-day-card' ? '如：2025.9.20'
+    : (d.subtitle ? `如：${d.subtitle}` : '可填写副标题');
+  msg.placeholder = tpl.type === 'notice-card' ? '用 # 标题、• 条目|说明 格式填写'
+    : tpl.type === 'promo-card' ? '用 # 序号|标题、数字|条目、关键词|内容 格式填写'
+    : tpl.type === 'dental-day-card' ? '每行一句宣传语，如：呵护您的口腔'
+    : (d.message ? `如：${d.message.split('\n')[0]}` : '可填写正文文案');
+  const clinicLabel = document.getElementById('other-clinic-label');
+  if (clinicLabel) {
+    const isTitleTpl = tpl.type === 'dental-day-card' || tpl.type === 'promo-card';
+    clinicLabel.textContent = isTitleTpl ? '主标题' : '诊所名称';
+    clinic.placeholder = tpl.type === 'dental-day-card' ? '如：全国爱牙日'
+      : tpl.type === 'promo-card' ? '如：全国爱牙日'
+      : '如：阳光口腔诊所';
+  }
+  document.getElementById('other-address-wrap').classList.toggle('hidden', !tpl.showAddress);
+}
+
+function selectOtherTemplate(key) {
+  selectedOtherTemplate = key;
+  renderOtherTemplateGrid();
+  applyOtherTemplateDefaults();
+  applyClinicInfoToForms();
+  renderOtherPreview();
+}
+
+async function renderOtherPreview() {
+  const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
+  if (tpl.backgroundImage) await ensureImageSize(tpl.backgroundImage);
+  const preview = document.getElementById('other-preview');
+  preview.innerHTML = buildOtherHTML();
+  applyPreviewHeight(preview, tpl.backgroundImage, DEFAULT_POSTER_H, tpl);
+  requestAnimationFrame(() => requestAnimationFrame(updateOtherPreviewScale));
+}
+
 // ==================== 导出图片 ====================
 async function exportImage(type) {
   const btn = event?.target?.closest('button');
   if (btn) btn.classList.add('export-loading');
 
+  if (type === 'schedule') {
+    const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
+    const bg = THEMES[themeKey]?.backgroundImage;
+    if (bg) await ensureImageSize(bg);
+  } else if (type === 'other') {
+    const bg = OTHER_TEMPLATES[selectedOtherTemplate]?.backgroundImage;
+    if (bg) await ensureImageSize(bg);
+  }
+
   const host = document.createElement('div');
-  host.style.cssText = `position:fixed;left:-9999px;top:0;width:${EXPORT_W}px;z-index:-1;`;
-  host.innerHTML = type === 'schedule' ? buildScheduleHTML(false) : buildCareHTML();
+  host.style.cssText = `position:fixed;left:0;top:0;width:${EXPORT_W}px;opacity:0;pointer-events:none;z-index:-1;`;
+  const builders = { schedule: buildScheduleHTML, care: buildCareHTML, other: buildOtherHTML };
+  host.innerHTML = builders[type]();
   document.body.appendChild(host);
 
   const el = host.querySelector('.export-root');
-  const themeKey = type === 'schedule'
-    ? (selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle)
-    : null;
-  const posterTheme = themeKey && THEMES[themeKey]?.backgroundImage ? THEMES[themeKey] : null;
-  if (posterTheme?.backgroundImage) {
-    try { await preloadImage(posterImageSrc(posterTheme.backgroundImage)); } catch (_) { /* continue */ }
-  }
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  if (posterTheme?.backgroundImage) {
-    await new Promise(r => setTimeout(r, 120));
+  if (!el) {
+    alert('图片导出失败，请重试');
+    document.body.removeChild(host);
+    if (btn) btn.classList.remove('export-loading');
+    return;
   }
 
+  await waitForImages(el);
   try {
-    const exportH = posterTheme?.posterHeight || el.offsetHeight;
+    await inlineImagesForExport(el);
+  } catch (_) {
+    alert('图片导出失败，请重试');
+    document.body.removeChild(host);
+    if (btn) btn.classList.remove('export-loading');
+    return;
+  }
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  let exportH = parseInt(el.style.height, 10) || el.offsetHeight || DEFAULT_POSTER_H;
+  if (exportH < 1) exportH = DEFAULT_POSTER_H;
+
+  try {
     const canvas = await html2canvas(el, {
       scale: 2,
-      useCORS: !isFileProtocol(),
-      allowTaint: isFileProtocol(),
-      backgroundColor: null,
+      useCORS: false,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
       logging: false,
       foreignObjectRendering: false,
       width: EXPORT_W,
@@ -971,12 +1844,13 @@ async function exportImage(type) {
       scrollY: 0,
     });
     const link = document.createElement('a');
-    const prefix = type === 'schedule' ? '节假日排期' : '术后护理';
+    const names = { schedule: '节假日排期', care: '术后护理', other: '其他图文' };
+    const prefix = names[type] || '图文';
     link.download = `${prefix}_${new Date().toISOString().slice(0, 10)}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch (e) {
-    alert('导出失败，请重试：' + e.message);
+    alert('图片导出失败，请重试');
   } finally {
     document.body.removeChild(host);
     if (btn) btn.classList.remove('export-loading');
@@ -984,13 +1858,25 @@ async function exportImage(type) {
 }
 
 // ==================== 初始化 ====================
+let otherPreviewResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(otherPreviewResizeTimer);
+  otherPreviewResizeTimer = setTimeout(updateOtherPreviewScale, 120);
+});
+
 async function init() {
+  await loadEmbeddedAssets();
+  await loadClinicInfo();
   renderStylePills();
   renderTemplateGrid();
+  renderOtherTemplateGrid();
+  applyOtherTemplateDefaults();
+  applyClinicInfoToForms();
   await fetchHolidays(currentYear);
-  renderSchedulePreview();
+  await preloadAllBackgroundSizes();
+  await renderSchedulePreview();
   renderCarePreview();
-  verifyPosterAssets();
+  await renderOtherPreview();
 }
 
 init();
