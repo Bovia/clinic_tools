@@ -26,11 +26,9 @@
     .tpl-pill.active { box-shadow: 0 0 0 2px #0d9488; }
     .cal-day { cursor: pointer; }
     .cal-day-cell { position: relative; }
-    .cal-day-tip {
-      position: absolute;
-      bottom: calc(100% + 6px);
-      left: 50%;
-      transform: translateX(-50%);
+    .cal-day-tip-global {
+      position: fixed;
+      transform: translate(-50%, calc(-100% - 6px));
       padding: 6px 10px;
       background: #ffffff;
       color: #475569;
@@ -42,11 +40,11 @@
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      z-index: 30;
+      z-index: 9999;
       transition: opacity 0.18s ease 0s, visibility 0.18s ease 0s;
       box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
     }
-    .cal-day-tip::before {
+    .cal-day-tip-global::before {
       content: '';
       position: absolute;
       top: 100%;
@@ -55,7 +53,7 @@
       border: 5px solid transparent;
       border-top-color: #e2e8f0;
     }
-    .cal-day-tip::after {
+    .cal-day-tip-global::after {
       content: '';
       position: absolute;
       top: calc(100% - 1px);
@@ -64,10 +62,114 @@
       border: 4px solid transparent;
       border-top-color: #ffffff;
     }
-    .cal-day-cell:hover .cal-day-tip {
+    .cal-day-tip-global.visible {
       opacity: 1;
       visibility: visible;
       transition: opacity 0.2s ease 0.45s, visibility 0.2s ease 0.45s;
+    }
+    .sch-form-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      letter-spacing: 0.02em;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .sch-month-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    .sch-month-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .sch-month-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .sch-month-label {
+      min-width: 128px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+      letter-spacing: 0.02em;
+    }
+    .sch-settings-block {
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    .sch-settings-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+    }
+    .sch-settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 12px;
+    }
+    .sch-check-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #334155;
+      user-select: none;
+    }
+    .sch-check-item input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      flex-shrink: 0;
+      accent-color: #0d9488;
+      cursor: pointer;
+    }
+    .sch-field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .sch-field-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1e293b;
+      background: #fff;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .sch-field-input:focus {
+      outline: none;
+      border-color: #0d9488;
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
     }
     .preview-card {
       width: 360px;
@@ -165,32 +267,37 @@
 
       <div class="grid lg:grid-cols-2 gap-6 pb-8">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-          <h3 class="text-sm font-semibold text-slate-700 mb-3">排期信息</h3>
-          <div class="space-y-3">
-            <div class="flex items-center justify-center gap-3 py-1">
-              <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 text-sm">&lt;</button>
-              <span id="month-label" class="text-base font-semibold min-w-[120px] text-center"></span>
-              <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 text-sm">&gt;</button>
+          <h3 class="sch-form-title">排期信息</h3>
+          <div class="space-y-4">
+            <div class="sch-month-bar">
+              <button type="button" onclick="changeMonth(-1)" class="sch-month-btn" aria-label="上一月">&lt;</button>
+              <span id="month-label" class="sch-month-label"></span>
+              <button type="button" onclick="changeMonth(1)" class="sch-month-btn" aria-label="下一月">&gt;</button>
             </div>
-            <label class="flex items-center justify-between gap-3 py-1 cursor-pointer">
-              <span class="text-xs text-slate-500">展示农历</span>
-              <input id="sch-show-lunar" type="checkbox" checked onchange="renderSchedulePreview()"
-                class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/30" />
-            </label>
-            <div>
-              <label class="text-xs text-slate-500 mb-1 block">诊所名称</label>
-              <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
-              <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
+            <div class="sch-settings-block">
+              <div class="sch-settings-title">显示设置</div>
+              <div class="sch-settings-grid">
+                <label class="sch-check-item">
+                  <input id="sch-show-lunar" type="checkbox" checked onchange="renderSchedulePreview()" />
+                  <span>展示农历</span>
+                </label>
+                <label class="sch-check-item">
+                  <input id="sch-show-full-month" type="checkbox" checked onchange="renderSchedulePreview()" />
+                  <span>展示整月</span>
+                </label>
+              </div>
             </div>
             <div>
-              <label class="text-xs text-slate-500 mb-1 block">祝贺文案（选填）</label>
-              <textarea id="sch-greeting" rows="4" placeholder="如：祝您端午安康，阖家幸福！" oninput="renderSchedulePreview()"
-                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500"></textarea>
+              <label class="sch-field-label" for="sch-clinic">诊所名称</label>
+              <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()" class="sch-field-input" />
+            </div>
+            <div>
+              <label class="sch-field-label" for="sch-phone">联系电话</label>
+              <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()" class="sch-field-input" />
+            </div>
+            <div>
+              <label class="sch-field-label" for="sch-greeting">祝贺文案（选填）</label>
+              <textarea id="sch-greeting" rows="4" placeholder="如：祝您端午安康，阖家幸福！" oninput="renderSchedulePreview()" class="sch-field-input"></textarea>
             </div>
           </div>
         </div>
@@ -442,11 +549,12 @@ const CARE_TEMPLATES = {
     color: '#0891b2',
     items: [
       { t: '咬紧棉球', d: '术后请咬紧棉球30-40分钟，勿频繁更换。如仍有渗血，可更换新棉球继续咬紧。' },
-      { t: '冷敷消肿', d: '术后24小时内可对面颊部冷敷，每次15-20分钟，间隔1-2小时，有助于减轻肿胀。' },
+      { t: '冷敷止血', d: '棉球吐掉之后可吃些冰糕，喝冰水或局部冰敷，有助于减轻出血及肿胀。' },
       { t: '勿漱口刷牙', d: '术后24小时内请勿漱口、刷牙、吐口水，避免破坏血凝块导致出血。' },
       { t: '饮食注意', d: '术后2小时后可进食温凉流食或软食，避免过热、辛辣及过硬食物。' },
       { t: '按时服药', d: '请遵医嘱服用消炎止痛药，如有不适请及时联系诊所。' },
       { t: '禁忌事项', d: '术后一周内忌烟酒，避免剧烈运动及吸吮伤口，防止干槽症。' },
+      { t: '复诊提醒', d: '如拔牙后2~3日疼痛逐渐加重，需及时复诊或与医生联系。' },
     ],
   },
   implant: {
@@ -467,7 +575,7 @@ const CARE_TEMPLATES = {
     title: '补牙术后注意事项',
     color: '#2563eb',
     items: [
-      { t: '等待定型', d: '树脂补牙后2小时内避免进食，24小时内避免咬硬物，防止充填物脱落。' },
+      { t: '饮食注意', d: '树脂补牙后即可正常进食，避免咬过硬的食物，防止充填物脱落。' },
       { t: '敏感反应', d: '术后可能出现短暂冷热敏感，一般1-2周内自行缓解，持续不适请复诊。' },
       { t: '口腔清洁', d: '正常刷牙漱口，使用牙线时注意避开补牙边缘，保持口腔清洁。' },
       { t: '饮食建议', d: '避免过粘、过硬食物（如年糕、坚果），减少对充填体的损伤。' },
@@ -479,11 +587,11 @@ const CARE_TEMPLATES = {
     title: '根管治疗后注意事项',
     color: '#7c3aed',
     items: [
-      { t: '暂封保护', d: '治疗期间避免用患侧咀嚼硬物，防止暂封材料脱落，如有脱落请立即就诊。' },
+      { t: '饮食注意', d: '根管治疗期间内禁食硬食，尽量使用对侧牙进食。（如牙齿折裂，治疗即终止）' },
       { t: '疼痛管理', d: '术后1-3天可能有轻微胀痛，可遵医嘱服用止痛药，持续剧痛请复诊。' },
       { t: '完成治疗', d: '根管治疗通常需2-3次就诊，请按时完成全部疗程，避免半途而废。' },
       { t: '牙冠修复', d: '根管治疗后建议尽快做牙冠修复，防止牙齿劈裂。' },
-      { t: '口腔卫生', d: '正常刷牙，治疗期间可用温盐水漱口，保持口腔清洁。' },
+      { t: '术后反应', d: '根管治疗充填完毕，一周内可能会出现胀、闷或轻微疼痛，属正常状况，可自行恢复。' },
     ],
   },
   cleaning: {
@@ -491,8 +599,8 @@ const CARE_TEMPLATES = {
     title: '洁牙术后注意事项',
     color: '#06b6d4',
     items: [
-      { t: '敏感护理', d: '洁牙后1-2天可能出现牙齿酸软敏感，属正常现象，避免过冷过热刺激。' },
-      { t: '出血观察', d: '牙龈可能有少量出血，使用软毛牙刷轻柔刷牙，出血不止请联系诊所。' },
+      { t: '敏感护理', d: '洁牙后1周左右可能出现牙齿酸软敏感，属正常现象，避免过冷过热刺激。' },
+      { t: '出血观察', d: '洗牙后，请不要用力吮吸，或用舌头舔拭牙龈，牙龈可能有少量出血，使用软毛牙刷轻柔刷牙，出血不止请联系诊所。' },
       { t: '饮食注意', d: '术后24小时内避免浓茶、咖啡、红酒等易染色食物。' },
       { t: '刷牙方法', d: '掌握正确刷牙方法，配合牙线/冲牙器，保持牙周健康。' },
       { t: '定期洁牙', d: '建议每6-12个月洁牙一次，维护口腔健康。' },
@@ -854,6 +962,33 @@ function isShowLunarCalendar() {
   return el ? el.checked : true;
 }
 
+function isShowFullMonthCalendar() {
+  const el = document.getElementById('sch-show-full-month');
+  return el ? el.checked : true;
+}
+
+function weekHasRestOnPage(y, m, week) {
+  return week.some(day => day > 0 && !isWorkDay(y, m, day));
+}
+
+function buildMonthCalendarWeeks(y, m) {
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const firstDay = new Date(y, m, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const slots = [];
+  for (let i = 0; i < startOffset; i++) slots.push(0);
+  for (let d = 1; d <= daysInMonth; d++) slots.push(d);
+  while (slots.length % 7 !== 0) slots.push(0);
+  const weeks = [];
+  for (let i = 0; i < slots.length; i += 7) {
+    weeks.push(slots.slice(i, i + 7));
+  }
+  if (!isShowFullMonthCalendar()) {
+    return weeks.filter(week => weekHasRestOnPage(y, m, week));
+  }
+  return weeks;
+}
+
 function getLunarDayLabel(y, m, d) {
   if (typeof Solar !== 'undefined') {
     try {
@@ -924,8 +1059,124 @@ function calendarStatusBadge(y, m, d, work, emphasized) {
   return work ? calendarDayBadge('诊', 'work') : calendarDayBadge('休', 'rest');
 }
 
-function buildCalDayTip() {
-  return '<div class="cal-day-tip">左键：切换休假<br>右键：切换高亮</div>';
+let calTipShowTimer = null;
+let calTipVisible = false;
+let calTipMouseX = 0;
+let calTipMouseY = 0;
+
+function ensureCalDayTooltipEl() {
+  let tip = document.getElementById('cal-day-tooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'cal-day-tooltip';
+    tip.className = 'cal-day-tip-global';
+    tip.setAttribute('aria-hidden', 'true');
+    tip.innerHTML = '左键：切换休假<br>右键：切换高亮';
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+
+function positionCalDayTip(cell) {
+  const tip = ensureCalDayTooltipEl();
+  const rect = cell.getBoundingClientRect();
+  tip.style.left = `${rect.left + rect.width / 2}px`;
+  tip.style.top = `${rect.top}px`;
+}
+
+function showCalDayTip(cell) {
+  positionCalDayTip(cell);
+  const tip = ensureCalDayTooltipEl();
+  tip.classList.add('visible');
+  tip.setAttribute('aria-hidden', 'false');
+  calTipVisible = true;
+}
+
+function hideCalDayTip() {
+  clearTimeout(calTipShowTimer);
+  calTipShowTimer = null;
+  const tip = document.getElementById('cal-day-tooltip');
+  if (tip) {
+    tip.classList.remove('visible');
+    tip.setAttribute('aria-hidden', 'true');
+  }
+  calTipVisible = false;
+}
+
+function scheduleCalDayTipShow(cell) {
+  clearTimeout(calTipShowTimer);
+  calTipShowTimer = setTimeout(() => showCalDayTip(cell), 450);
+}
+
+function getCalDayCellFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  return el?.closest?.('.cal-day-cell.cal-day') || null;
+}
+
+function refreshCalDayTipAfterRender() {
+  const host = document.getElementById('schedule-preview');
+  const cell = getCalDayCellFromPoint(calTipMouseX, calTipMouseY);
+  if (cell && host?.contains(cell)) {
+    if (calTipVisible) positionCalDayTip(cell);
+    else if (calTipShowTimer) scheduleCalDayTipShow(cell);
+    return;
+  }
+  if (calTipVisible || calTipShowTimer) hideCalDayTip();
+}
+
+function setupCalDayTooltip() {
+  const host = document.getElementById('schedule-preview');
+  const frame = document.getElementById('schedule-preview-frame');
+  if (!host || host.dataset.tipBound) return;
+  host.dataset.tipBound = '1';
+  ensureCalDayTooltipEl();
+
+  host.addEventListener('mousemove', e => {
+    calTipMouseX = e.clientX;
+    calTipMouseY = e.clientY;
+    if (!calTipVisible) return;
+    const cell = e.target.closest('.cal-day-cell.cal-day');
+    if (cell) positionCalDayTip(cell);
+  });
+
+  host.addEventListener('mouseover', e => {
+    const cell = e.target.closest('.cal-day-cell.cal-day');
+    if (!cell || !host.contains(cell)) return;
+    if (calTipVisible) {
+      positionCalDayTip(cell);
+      return;
+    }
+    scheduleCalDayTipShow(cell);
+  });
+
+  host.addEventListener('mouseout', e => {
+    const fromCell = e.target.closest('.cal-day-cell.cal-day');
+    if (!fromCell) return;
+    const related = e.relatedTarget;
+    if (related && fromCell.contains(related)) return;
+    const toCell = related?.closest?.('.cal-day-cell.cal-day');
+    if (toCell && host.contains(toCell)) {
+      clearTimeout(calTipShowTimer);
+      if (calTipVisible) showCalDayTip(toCell);
+      else scheduleCalDayTipShow(toCell);
+      return;
+    }
+    if (!related || !document.body.contains(related)) {
+      requestAnimationFrame(() => {
+        const cell = getCalDayCellFromPoint(calTipMouseX, calTipMouseY);
+        if (cell && host.contains(cell)) {
+          if (calTipVisible) positionCalDayTip(cell);
+          else scheduleCalDayTipShow(cell);
+          return;
+        }
+        hideCalDayTip();
+      });
+      return;
+    }
+    hideCalDayTip();
+  });
+
+  frame?.addEventListener('mouseleave', hideCalDayTip);
 }
 
 function buildScheduleDayCell(d, opts) {
@@ -947,7 +1198,6 @@ function buildScheduleDayCell(d, opts) {
   const handlers = interactive
     ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" oncontextmenu="toggleDayEmphasis(${currentYear},${currentMonth},${d},event)" class="cal-day-cell cal-day"`
     : ' class="cal-day-cell"';
-  const dayTip = interactive ? buildCalDayTip() : '';
   return `<td style="width:${cellW}px;height:${cellH}px;padding:3px 2px 0;border:0;vertical-align:top;overflow:visible;box-sizing:border-box;">
     <div${handlers} style="position:relative;overflow:visible;width:100%;height:100%;background:${bg};border:1px solid ${border};border-radius:${radius}px;text-align:center;box-sizing:border-box;padding:3px 2px;">
       ${calendarStatusBadge(currentYear, currentMonth, d, work, emphasized)}
@@ -956,7 +1206,6 @@ function buildScheduleDayCell(d, opts) {
       ${holidayLabel
         ? `<div style="font-size:9px;line-height:12px;color:#dc2626;margin-top:1px;font-weight:500;">${esc(holidayLabel)}</div>`
         : ''}
-      ${dayTip}
     </div>
   </td>`;
 }
@@ -1035,7 +1284,14 @@ function isOffDay(info) {
 function toggleDay(y, m, d) {
   const k = dateKey(y, m, d);
   const current = isWorkDay(y, m, d);
-  dayOverrides[k] = !current;
+  const next = !current;
+  const defaultWork = defaultIsWork(y, m, d);
+  if (next === defaultWork) {
+    delete dayOverrides[k];
+    delete dayEmphasis[k];
+  } else {
+    dayOverrides[k] = next;
+  }
   renderSchedulePreview();
 }
 
@@ -1525,20 +1781,12 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   const titleColor = theme.color || '#b91c1c';
   const { cellW, cellH, GAP, ROW_GAP, panelPadH, calWrapPadH } = getPosterCalendarMetrics(theme);
 
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-
-  const slots = [];
-  for (let i = 0; i < startOffset; i++) slots.push(0);
-  for (let d = 1; d <= daysInMonth; d++) slots.push(d);
-  while (slots.length % 7 !== 0) slots.push(0);
-
   const dayCell = d => buildScheduleDayCell(d, { interactive, cellW, cellH, holidayMaxLen: 3, radius: 7, numSize: 13, numLh: 15 });
+  const weeks = buildMonthCalendarWeeks(currentYear, currentMonth);
 
   let calendarRows = '';
-  for (let i = 0; i < slots.length; i += 7) {
-    calendarRows += '<tr>' + slots.slice(i, i + 7).map(dayCell).join('') + '</tr>';
+  for (const week of weeks) {
+    calendarRows += '<tr>' + week.map(dayCell).join('') + '</tr>';
   }
 
   const weekdayRow = `<tr>${WEEKDAYS.map(w => `<td style="width:${cellW}px;height:16px;padding:0;border:0;text-align:center;font-size:9px;color:#94a3b8;vertical-align:bottom;">${w}</td>`).join('')}</tr>`;
@@ -1590,15 +1838,6 @@ function buildScheduleHTML(interactive) {
   const subColor = isLight ? '#64748b' : '#e2e8f0';
   const tagBg = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.25)';
 
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-
-  const slots = [];
-  for (let i = 0; i < startOffset; i++) slots.push(0);
-  for (let d = 1; d <= daysInMonth; d++) slots.push(d);
-  while (slots.length % 7 !== 0) slots.push(0);
-
   const GAP = 4;
   const ROW_GAP = 5;
   const cellW = 40;
@@ -1609,10 +1848,11 @@ function buildScheduleHTML(interactive) {
     workBg: '#f0fdf4', restBg: '#fef2f2', workBorder: '#bbf7d0', restBorder: '#fecaca',
     workNumColor: '#16a34a', restNumColor: '#dc2626',
   });
+  const weeks = buildMonthCalendarWeeks(currentYear, currentMonth);
 
   let calendarRows = '';
-  for (let i = 0; i < slots.length; i += 7) {
-    calendarRows += '<tr>' + slots.slice(i, i + 7).map(dayCell).join('') + '</tr>';
+  for (const week of weeks) {
+    calendarRows += '<tr>' + week.map(dayCell).join('') + '</tr>';
   }
 
   const weekdayRow = `<tr>${WEEKDAYS.map(w => `<td style="width:${cellW}px;height:18px;padding:0;border:0;text-align:center;font-size:10px;color:#94a3b8;vertical-align:bottom;">周${w}</td>`).join('')}</tr>`;
@@ -1656,7 +1896,10 @@ async function renderSchedulePreview() {
   const preview = document.getElementById('schedule-preview');
   preview.innerHTML = buildScheduleHTML(true);
   applyPreviewHeight(preview, theme?.backgroundImage, 644);
-  requestAnimationFrame(() => requestAnimationFrame(updateSchedulePreviewScale));
+  requestAnimationFrame(() => {
+    updateSchedulePreviewScale();
+    refreshCalDayTipAfterRender();
+  });
 }
 
 // ==================== 术后护理 ====================
@@ -2335,6 +2578,7 @@ async function init() {
   renderOtherTemplateGrid();
   applyOtherTemplateDefaults();
   applyClinicInfoToForms();
+  setupCalDayTooltip();
   await fetchHolidays(currentYear);
   await preloadAllBackgroundSizes();
   await renderSchedulePreview();
