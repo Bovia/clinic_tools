@@ -25,15 +25,14 @@
     .tpl-pill.active { box-shadow: 0 0 0 2px #0d9488; }
     .cal-day { cursor: pointer; transition: background .15s; }
     .cal-day:hover { background: #f1f5f9; }
-    .preview-card { width: 360px; }
-    .preview-card > .export-root { width: 360px; }
-    @media (max-width: 640px) {
-      .preview-card { width: 100%; max-width: 360px; }
+    .preview-card {
+      width: 360px;
+      flex-shrink: 0;
     }
+    .preview-card > .export-root { width: 360px; }
     .preview-frame {
       width: 100%;
-      height: min(520px, 58vh);
-      min-height: 280px;
+      min-height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -66,10 +65,11 @@
     @media (max-width: 640px) {
       .preview-with-export {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
       }
       .preview-export-actions {
         padding-top: 0;
+        align-items: center;
       }
     }
 
@@ -146,8 +146,12 @@
           </div>
         </div>
 
-        <div class="preview-with-export lg:justify-start">
-          <div id="schedule-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+        <div class="preview-with-export lg:justify-start w-full">
+          <div id="schedule-preview-frame" class="preview-frame flex-1 min-w-0 w-full">
+            <div id="schedule-preview-host" class="preview-scale-host">
+              <div id="schedule-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+            </div>
+          </div>
           <div class="preview-export-actions">
             <button onclick="exportImage('schedule')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -200,8 +204,12 @@
         </div>
 
         <!-- 右侧预览 -->
-        <div class="preview-with-export lg:justify-start">
-          <div id="care-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+        <div class="preview-with-export lg:justify-start w-full">
+          <div id="care-preview-frame" class="preview-frame flex-1 min-w-0 w-full">
+            <div id="care-preview-host" class="preview-scale-host">
+              <div id="care-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+            </div>
+          </div>
           <div class="preview-export-actions">
             <button onclick="exportImage('care')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -364,6 +372,7 @@ const MEDICAL_GRADIENT = 'linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 
 const EXPORT_W = 360;
 const DEFAULT_POSTER_H = 640;
 const PREVIEW_FRAME_PAD = 32;
+const PREVIEW_MIN_FRAME_H = 200;
 const imageSizeCache = {};
 /** 更换海报背景图后，把此数字 +1 可强制浏览器刷新缓存 */
 const POSTER_ASSET_VERSION = 18;
@@ -589,7 +598,7 @@ const OTHER_TEMPLATES = {
       { field: 'subtitle', top: '26%', left: '22px', right: '46%', align: 'left', fontSize: 15, color: '#78350f', weight: 600, lineHeight: 1.45, shadow: false },
       { field: 'message', top: '32%', left: '22px', right: '44%', align: 'left', fontSize: 12, color: '#92400e', weight: 400, lineHeight: 1.7, multiline: true, shadow: false },
     ],
-    footer: { bg: 'transparent', color: '#57534e', height: 40, fontSize: 9 },
+    footer: { bg: 'rgba(255,255,255,0.72)', color: '#57534e', height: 44, fontSize: 9 },
   },
   womens_day: {
     label: '妇女节',
@@ -637,7 +646,7 @@ function switchTab(tab) {
     btn.classList.toggle('tab-active', tab === name);
     btn.classList.toggle('text-slate-600', tab !== name);
   });
-  if (tab === 'other') requestAnimationFrame(updateOtherPreviewScale);
+  requestAnimationFrame(updateAllPreviewScales);
 }
 
 // ==================== 节假日 API ====================
@@ -1070,11 +1079,8 @@ function applyPreviewHeight(previewEl, imagePath, fallback, tpl) {
   }
 }
 
-function updateOtherPreviewScale() {
-  const frame = document.getElementById('other-preview-frame');
-  const host = document.getElementById('other-preview-host');
-  const preview = document.getElementById('other-preview');
-  if (!frame || !host || !preview) return;
+function updatePreviewScale(frame, host, preview) {
+  if (!frame || !host || !preview || !frame.clientWidth) return;
 
   preview.style.transform = 'none';
   const baseW = EXPORT_W;
@@ -1082,14 +1088,45 @@ function updateOtherPreviewScale() {
   if (!baseH) return;
 
   const maxW = Math.max(120, frame.clientWidth - PREVIEW_FRAME_PAD);
-  const maxH = Math.max(120, frame.clientHeight - PREVIEW_FRAME_PAD);
-  const scale = Math.min(maxW / baseW, maxH / baseH);
+  // 优先按宽度撑满，避免长图被固定框高度压得过小
+  const scale = maxW / baseW;
   const displayW = Math.ceil(baseW * scale);
   const displayH = Math.ceil(baseH * scale);
 
   preview.style.transform = Math.abs(scale - 1) > 0.01 ? `scale(${scale})` : 'none';
   host.style.width = displayW + 'px';
   host.style.height = displayH + 'px';
+  frame.style.height = Math.max(PREVIEW_MIN_FRAME_H, displayH + PREVIEW_FRAME_PAD) + 'px';
+}
+
+function updateSchedulePreviewScale() {
+  updatePreviewScale(
+    document.getElementById('schedule-preview-frame'),
+    document.getElementById('schedule-preview-host'),
+    document.getElementById('schedule-preview'),
+  );
+}
+
+function updateCarePreviewScale() {
+  updatePreviewScale(
+    document.getElementById('care-preview-frame'),
+    document.getElementById('care-preview-host'),
+    document.getElementById('care-preview'),
+  );
+}
+
+function updateOtherPreviewScale() {
+  updatePreviewScale(
+    document.getElementById('other-preview-frame'),
+    document.getElementById('other-preview-host'),
+    document.getElementById('other-preview'),
+  );
+}
+
+function updateAllPreviewScales() {
+  updateSchedulePreviewScale();
+  updateCarePreviewScale();
+  updateOtherPreviewScale();
 }
 
 function posterImageSrc(path) {
@@ -1377,6 +1414,7 @@ async function renderSchedulePreview() {
   const preview = document.getElementById('schedule-preview');
   preview.innerHTML = buildScheduleHTML(true);
   applyPreviewHeight(preview, theme?.backgroundImage, 644);
+  requestAnimationFrame(() => requestAnimationFrame(updateSchedulePreviewScale));
 }
 
 // ==================== 术后护理 ====================
@@ -1437,6 +1475,7 @@ function buildCareHTML() {
 
 function renderCarePreview() {
   document.getElementById('care-preview').innerHTML = buildCareHTML();
+  requestAnimationFrame(() => requestAnimationFrame(updateCarePreviewScale));
 }
 
 // ==================== 其他图文 ====================
@@ -1577,33 +1616,37 @@ function buildPromoSectionHTML(sections) {
   return sections.map(sec => {
     const items = sec.items.map(item => {
       if (item.type === 'num') {
-        return `<div style="font-size:9px;color:#334155;line-height:14px;margin-bottom:4px;">${esc(item.n)}. ${esc(item.text)}</div>`;
+        return `<div style="font-size:11px;color:#334155;line-height:17px;margin-bottom:5px;">${esc(item.n)}. ${esc(item.text)}</div>`;
       }
       if (item.type === 'kv') {
-        return `<div style="font-size:9px;line-height:14px;margin-bottom:3px;">
+        return `<div style="font-size:11px;line-height:17px;margin-bottom:4px;">
           <span style="color:#64748b;">${esc(item.key)}</span> <span style="color:#334155;">${esc(item.val)}</span>
         </div>`;
       }
-      return `<div style="font-size:9px;color:#334155;line-height:14px;margin-bottom:4px;">${esc(item.text)}</div>`;
+      return `<div style="font-size:11px;color:#334155;line-height:17px;margin-bottom:5px;">${esc(item.text)}</div>`;
     }).join('');
-    return `<div style="margin-bottom:6px;">${items}</div>`;
+    return `<div style="margin-bottom:8px;">${items}</div>`;
   }).join('');
 }
 
-// 坐标按 promo-bg.png（724×1024）实测；纵向用百分比，导出与预览背景拉伸时位置一致
-function promoLayoutCoords() {
+// 坐标按 promo-bg.png（724×1024）实测；海报整体高度固定，仅正文 div 在内部向下延伸
+function promoLayoutCoords(h) {
   const rw = EXPORT_W / 724;
   return {
-    titleTop: '10.35%',
-    ribbonTop: '25.1%',
-    ribbonH: '5.3%',
+    titleTop: Math.round(h * 0.1035),
+    ribbonTop: Math.round(h * 0.251),
+    ribbonH: Math.round(h * 0.053),
     ribbonLeft: Math.round(128 * rw),
     ribbonRight: Math.round(128 * rw),
-    contentTop: '33.4%',
+    contentTop: Math.round(h * 0.328),
     contentLeft: Math.round(148 * rw),
     contentRight: Math.round(148 * rw),
-    contentBottom: '35.9%',
+    contentBottomPad: Math.round(h * 0.295),
   };
+}
+
+function promoContentMinHeight(h, lay) {
+  return Math.max(40, h - lay.contentTop - lay.contentBottomPad);
 }
 
 function promoTitleStyle(accent) {
@@ -1627,26 +1670,27 @@ function syncPromoPosterHeight(root, previewEl) {
 
 function buildOtherPromoHTML(tpl, data) {
   const h = posterDisplayHeight(tpl);
-  const lay = promoLayoutCoords();
+  const lay = promoLayoutCoords(h);
   const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
   const sections = parsePromoSections(data.message || '');
   const cardHtml = buildPromoSectionHTML(sections);
   const accent = '#047857';
+  const minPanelH = promoContentMinHeight(h, lay);
 
   const ribbonHtml = data.subtitle
-    ? `<div style="position:absolute;top:${lay.ribbonTop};left:${lay.ribbonLeft}px;right:${lay.ribbonRight}px;height:${lay.ribbonH};display:table;z-index:2;box-sizing:border-box;">
+    ? `<div style="position:absolute;top:${lay.ribbonTop}px;left:${lay.ribbonLeft}px;right:${lay.ribbonRight}px;height:${lay.ribbonH}px;display:table;z-index:2;box-sizing:border-box;">
         <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:12px;color:#ffffff;font-weight:700;letter-spacing:2px;line-height:1.1;padding:6px 8px 2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.12);">${esc(data.subtitle)}</div>
       </div>`
     : '';
 
   return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
     <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
-    <div style="position:absolute;top:${lay.titleTop};left:0;right:0;text-align:center;z-index:2;padding:0 18px;box-sizing:border-box;">
+    <div style="position:absolute;top:${lay.titleTop}px;left:0;right:0;text-align:center;z-index:2;padding:0 18px;box-sizing:border-box;">
       <div style="${promoTitleStyle(accent)}">${esc(titleText)}</div>
     </div>
     ${ribbonHtml}
-    <div style="position:absolute;top:${lay.contentTop};left:${lay.contentLeft}px;right:${lay.contentRight}px;bottom:${lay.contentBottom};z-index:2;box-sizing:border-box;">
-      <div class="promo-content-panel" style="background:rgba(255,255,255,0.52);border-radius:10px;padding:8px 10px 10px;height:100%;box-sizing:border-box;overflow:hidden;">
+    <div style="position:absolute;top:${lay.contentTop}px;left:${lay.contentLeft}px;right:${lay.contentRight}px;z-index:2;box-sizing:border-box;">
+      <div class="promo-content-panel" style="background:rgba(255,255,255,0.52);border-radius:10px;padding:10px 12px 12px;min-height:${minPanelH}px;height:auto;box-sizing:border-box;">
         ${cardHtml}
       </div>
     </div>
@@ -2024,10 +2068,10 @@ async function exportImage(type) {
 }
 
 // ==================== 初始化 ====================
-let otherPreviewResizeTimer;
+let previewResizeTimer;
 window.addEventListener('resize', () => {
-  clearTimeout(otherPreviewResizeTimer);
-  otherPreviewResizeTimer = setTimeout(updateOtherPreviewScale, 120);
+  clearTimeout(previewResizeTimer);
+  previewResizeTimer = setTimeout(updateAllPreviewScales, 120);
 });
 
 async function init() {
