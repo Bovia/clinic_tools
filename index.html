@@ -19,11 +19,10 @@
   </script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
+    textarea { resize: vertical; min-height: 2.5rem; }
     .tab-active { background: #0d9488; color: #fff; box-shadow: 0 2px 8px rgba(13,148,136,.35); }
-    .style-pill { transition: all .2s; }
-    .style-pill.active { ring: 2px; box-shadow: 0 0 0 2px #0d9488; }
-    .tpl-card { transition: all .2s; cursor: pointer; }
-    .tpl-card.active { border-color: #0d9488; background: #f0fdfa; box-shadow: 0 0 0 2px #0d9488; }
+    .tpl-pill { transition: all .2s; }
+    .tpl-pill.active { box-shadow: 0 0 0 2px #0d9488; }
     .cal-day { cursor: pointer; transition: background .15s; }
     .cal-day:hover { background: #f1f5f9; }
     .preview-card { width: 360px; }
@@ -50,6 +49,28 @@
     }
     .preview-scale-host .preview-card {
       transform-origin: top left;
+    }
+    .preview-with-export {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 16px;
+    }
+    .preview-export-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 8px;
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .preview-with-export {
+        flex-direction: column;
+        align-items: center;
+      }
+      .preview-export-actions {
+        padding-top: 0;
+      }
     }
 
     .export-loading { pointer-events: none; opacity: .6; }
@@ -82,86 +103,75 @@
     <!-- ========== 节假日排期 ========== -->
     <section id="panel-schedule">
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold text-slate-900">节假日排期表</h2>
-            <p class="text-sm text-slate-500 mt-1">自动获取节假日数据，点击下方预览日历中的日期可切换出诊/休息，一键导出通知图</p>
+            <p class="text-sm text-slate-500 mt-1">自动获取节假日数据，点击预览日历中的日期可切换出诊/休息，一键导出通知图</p>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="refreshHolidays()" class="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              刷新节假日
-            </button>
-            <button onclick="exportImage('schedule')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm">
+          <button onclick="refreshHolidays()" class="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            刷新节假日
+          </button>
+        </div>
+        <div class="mt-3">
+          <label class="text-sm text-slate-600 mb-1.5 block">选择风格</label>
+          <div id="style-pills" class="flex flex-wrap gap-1.5"></div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6 pb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-3">排期信息</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-center gap-3 py-1">
+              <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 text-sm">&lt;</button>
+              <span id="month-label" class="text-base font-semibold min-w-[120px] text-center"></span>
+              <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 text-sm">&gt;</button>
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">诊所名称</label>
+              <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
+              <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">祝贺文案（选填）</label>
+              <textarea id="sch-greeting" rows="4" placeholder="如：祝您端午安康，阖家幸福！" oninput="renderSchedulePreview()"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-with-export lg:justify-start">
+          <div id="schedule-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+          <div class="preview-export-actions">
+            <button onclick="exportImage('schedule')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
               导出图片
             </button>
           </div>
         </div>
-
-        <!-- 月份选择 -->
-        <div class="flex items-center justify-center gap-4 mb-5">
-          <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600">&lt;</button>
-          <span id="month-label" class="text-lg font-semibold min-w-[140px] text-center"></span>
-          <button onclick="changeMonth(1)" class="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600">&gt;</button>
-        </div>
-
-        <!-- 诊所信息 -->
-        <div class="grid sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="text-sm text-slate-600 mb-1 block">诊所名称</label>
-            <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
-          </div>
-          <div>
-            <label class="text-sm text-slate-600 mb-1 block">联系电话</label>
-            <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()"
-              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500" />
-          </div>
-        </div>
-
-        <!-- 祝贺文案 -->
-        <div class="mb-5">
-          <label class="text-sm text-slate-600 mb-1 block">祝贺文案（选填）</label>
-          <textarea id="sch-greeting" rows="2" placeholder="如：祝您端午安康，阖家幸福！" oninput="renderSchedulePreview()"
-            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 resize-none"></textarea>
-        </div>
-
-        <!-- 风格选择 -->
-        <div class="mb-2">
-          <label class="text-sm text-slate-600 mb-2 block">选择风格</label>
-          <div id="style-pills" class="flex flex-wrap gap-2"></div>
-        </div>
-      </div>
-
-      <!-- 预览 -->
-      <div class="flex justify-center pb-8">
-        <div id="schedule-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
       </div>
     </section>
 
     <!-- ========== 术后护理 ========== -->
     <section id="panel-care" class="hidden">
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 class="text-xl font-bold text-slate-900">术后护理须知</h2>
-            <p class="text-sm text-slate-500 mt-1">选择模板，填写个性化信息，一键生成患者须知图</p>
-          </div>
-          <button onclick="exportImage('care')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            导出图片
-          </button>
+        <h2 class="text-xl font-bold text-slate-900">术后护理须知</h2>
+        <p class="text-sm text-slate-500 mt-1">选择模板，填写个性化信息，一键生成患者须知图</p>
+        <div class="mt-3">
+          <label class="text-sm text-slate-600 mb-1.5 block">选择模板</label>
+          <div id="tpl-grid" class="flex flex-wrap gap-1.5"></div>
         </div>
       </div>
 
       <div class="grid lg:grid-cols-2 gap-6 pb-8">
         <!-- 左侧控制 -->
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <h3 class="text-sm font-semibold text-slate-700 mb-3">选择模板</h3>
-            <div id="tpl-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
-          </div>
           <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <h3 class="text-sm font-semibold text-slate-700 mb-3">个性化信息</h3>
             <div class="space-y-3">
@@ -182,16 +192,22 @@
               </div>
               <div>
                 <label class="text-xs text-slate-500 mb-1 block">医生建议（选填）</label>
-                <textarea id="care-advice" rows="3" placeholder="可补充个性化医嘱..." oninput="renderCarePreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"></textarea>
+                <textarea id="care-advice" rows="4" placeholder="可补充个性化医嘱..." oninput="renderCarePreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 右侧预览 -->
-        <div class="flex justify-center lg:justify-start">
+        <div class="preview-with-export lg:justify-start">
           <div id="care-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+          <div class="preview-export-actions">
+            <button onclick="exportImage('care')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              导出图片
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -199,31 +215,23 @@
     <!-- ========== 其他图文 ========== -->
     <section id="panel-other" class="hidden">
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 class="text-xl font-bold text-slate-900">其他图文</h2>
-            <p class="text-sm text-slate-500 mt-1">选择模板，填写文案信息，一键生成宣传图</p>
-          </div>
-          <button onclick="exportImage('other')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            导出图片
-          </button>
+        <h2 class="text-xl font-bold text-slate-900">其他图文</h2>
+        <p class="text-sm text-slate-500 mt-1">选择模板，填写文案信息，一键生成宣传图</p>
+        <div class="mt-3">
+          <label class="text-sm text-slate-600 mb-1.5 block">选择模板</label>
+          <div id="other-tpl-grid" class="flex flex-wrap gap-1.5"></div>
         </div>
       </div>
 
       <div class="grid lg:grid-cols-5 gap-6 pb-8">
         <div class="space-y-6 lg:col-span-2">
           <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <h3 class="text-sm font-semibold text-slate-700 mb-3">选择模板</h3>
-            <div id="other-tpl-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
-          </div>
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <h3 class="text-sm font-semibold text-slate-700 mb-3">图文信息</h3>
             <div class="space-y-3">
               <div>
                 <label id="other-clinic-label" class="text-xs text-slate-500 mb-1 block">诊所名称</label>
-                <input id="other-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderOtherPreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                <textarea id="other-clinic" rows="1" placeholder="如：阳光口腔诊所" oninput="renderOtherPreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
               </div>
               <div>
                 <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
@@ -242,17 +250,23 @@
               </div>
               <div>
                 <label class="text-xs text-slate-500 mb-1 block">正文文案（选填）</label>
-                <textarea id="other-message" rows="3" placeholder="如：你们用温柔双手 呵护生命希望" oninput="renderOtherPreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"></textarea>
+                <textarea id="other-message" rows="8" placeholder="如：你们用温柔双手 呵护生命希望" oninput="onOtherMessageInput(this)"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <div class="lg:col-span-3 w-full">
-          <div id="other-preview-frame" class="preview-frame">
+        <div class="lg:col-span-3 w-full preview-with-export lg:justify-start">
+          <div id="other-preview-frame" class="preview-frame flex-1 min-w-0">
             <div id="other-preview-host" class="preview-scale-host">
               <div id="other-preview" class="preview-card poster bg-white rounded-2xl shadow-xl overflow-hidden"></div>
             </div>
+          </div>
+          <div class="preview-export-actions">
+            <button onclick="exportImage('other')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              导出图片
+            </button>
           </div>
         </div>
       </div>
@@ -274,7 +288,7 @@ let holidayData = {};       // 'MM-DD' -> { holiday, name, date }
 let dayOverrides = {};      // 'YYYY-MM-DD' -> true(出诊) / false(休息)
 let selectedStyle = 'auto';
 let selectedTemplate = 'extraction';
-let selectedOtherTemplate = 'nurse';
+let selectedOtherTemplate = 'dental_day';
 
 // ==================== 主题配置 ====================
 const THEMES = {
@@ -352,7 +366,7 @@ const DEFAULT_POSTER_H = 640;
 const PREVIEW_FRAME_PAD = 32;
 const imageSizeCache = {};
 /** 更换海报背景图后，把此数字 +1 可强制浏览器刷新缓存 */
-const POSTER_ASSET_VERSION = 15;
+const POSTER_ASSET_VERSION = 18;
 
 const HOLIDAY_THEME_MAP = {
   '春节': 'spring', '除夕': 'spring', '初一': 'spring', '初二': 'spring',
@@ -465,27 +479,6 @@ const CARE_TEMPLATES = {
 
 // ==================== 其他图文模板 ====================
 const OTHER_TEMPLATES = {
-  nurse: {
-    label: '护士节',
-    type: 'image-overlay',
-    color: '#5ec8e8',
-    backgroundImage: 'assets/nurse-bg.png',
-    posterHeight: 640,
-    fallbackGradient: 'linear-gradient(180deg,#7ec8e8 0%,#d4b8e8 100%)',
-    title: '国际护士节',
-    titleTop: '5%',
-    titleSize: 24,
-    showAddress: true,
-    defaults: {
-      subtitle: '一袭白衣 心怀暖阳',
-      message: '你们用温柔双手 呵护生命希望',
-    },
-    overlays: [
-      { field: 'subtitle', top: '13%', fontSize: 13, color: '#ffffff', weight: 500 },
-      { field: 'message', top: '73%', fontSize: 14, color: '#ffffff', weight: 600 },
-    ],
-    footer: { bg: 'transparent', color: '#ffffff', height: 36 },
-  },
   dental_day: {
     label: '爱牙日',
     type: 'dental-day-card',
@@ -500,27 +493,13 @@ const OTHER_TEMPLATES = {
       message: '呵护您的口腔\n关爱您的健康',
     },
   },
-  doctor: {
-    label: '医师节',
-    type: 'gradient-poster',
-    color: '#1d4ed8',
-    posterHeight: 640,
-    gradient: 'linear-gradient(180deg,#1e3a8a 0%,#3b82f6 50%,#93c5fd 100%)',
-    title: '中国医师节',
-    showAddress: false,
-    defaults: {
-      subtitle: '敬佑生命 砥砺前行',
-      message: '感谢每一位守护健康的医者\n愿您行医路上，平安顺遂',
-    },
-  },
   notice: {
-    label: '诊所通知',
+    label: '诊所通知1',
     type: 'notice-card',
     color: '#3b82f6',
     backgroundImage: 'assets/notice-bg.png',
     fallbackGradient: 'linear-gradient(180deg,#e0f2fe 0%,#bae6fd 100%)',
     titleLine1: '重要',
-    titleLine2: '诊所通知',
     showAddress: true,
     defaults: {
       subtitle: '请您留意',
@@ -528,7 +507,7 @@ const OTHER_TEMPLATES = {
     },
   },
   promo: {
-    label: '活动宣传',
+    label: '诊所通知2',
     type: 'promo-card',
     color: '#14b8a6',
     backgroundImage: 'assets/promo-bg.png',
@@ -538,7 +517,7 @@ const OTHER_TEMPLATES = {
     defaults: {
       clinic: '全国爱牙日',
       subtitle: '全民科普讲座',
-      message: '# 01|爱牙日\n自世界卫生组织倡导，每年开展口腔健康宣传，提升全民口腔保健意识。\n\n# 02|活动内容\n1|免费口腔检查\n2|专家现场答疑\n3|儿童涂氟体验\n4|爱牙科普讲解\n\n# 03|如何参加\n时间|2025年9月20日\n地点|欢迎到院咨询\n报名|电话预约，名额有限',
+      message: '自世界卫生组织倡导，每年开展口腔健康宣传，提升全民口腔保健意识。\n\n1|免费口腔检查\n2|专家现场答疑\n3|儿童涂氟体验\n4|爱牙科普讲解\n\n时间|2025年9月20日\n地点|欢迎到院咨询\n报名|电话预约，名额有限',
     },
   },
   birthday: {
@@ -593,6 +572,60 @@ const OTHER_TEMPLATES = {
       { field: 'message', top: '30px', left: '16px', right: '50%', align: 'left', fontSize: 10, color: '#9a3412', weight: 400, lineHeight: 1.4, multiline: true, shadow: false },
     ],
     footer: { bg: 'rgba(255,255,255,0.9)', color: '#881337', height: 28 },
+  },
+  chongyang: {
+    label: '重阳节',
+    type: 'image-overlay',
+    color: '#b45309',
+    backgroundImage: 'assets/chongyang-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#fef3c7 0%,#fde68a 100%)',
+    showAddress: true,
+    footerClinic: true,
+    defaults: {
+      subtitle: '九九重阳，敬老爱老',
+      message: '愿长辈齿健体安，笑口常开\n陪伴，是最长情的孝敬',
+    },
+    overlays: [
+      { field: 'subtitle', top: '26%', left: '22px', right: '46%', align: 'left', fontSize: 15, color: '#78350f', weight: 600, lineHeight: 1.45, shadow: false },
+      { field: 'message', top: '32%', left: '22px', right: '44%', align: 'left', fontSize: 12, color: '#92400e', weight: 400, lineHeight: 1.7, multiline: true, shadow: false },
+    ],
+    footer: { bg: 'transparent', color: '#57534e', height: 40, fontSize: 9 },
+  },
+  womens_day: {
+    label: '妇女节',
+    type: 'image-overlay',
+    color: '#ec4899',
+    backgroundImage: 'assets/womens-day-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#fce7f3 0%,#fbcfe8 100%)',
+    showAddress: true,
+    footerClinic: true,
+    defaults: {
+      subtitle: '不被世俗定义，绽放独特光芒',
+      message: '致敬每一位女性\n美，从爱自己开始',
+    },
+    overlays: [
+      { field: 'subtitle', top: '67%', left: '20px', right: '20px', align: 'center', fontSize: 12, color: '#ffffff', weight: 500, lineHeight: 1.5 },
+      { field: 'message', top: '72%', left: '24px', right: '24px', align: 'center', fontSize: 11, color: '#ffffff', weight: 400, lineHeight: 1.65, multiline: true },
+    ],
+    footer: { bg: 'transparent', color: '#ffffff', height: 44, fontSize: 9, textShadow: '0 1px 4px rgba(0,0,0,0.35)' },
+  },
+  qixi: {
+    label: '七夕节',
+    type: 'image-overlay',
+    color: '#be185d',
+    backgroundImage: 'assets/qixi-bg.png',
+    fallbackGradient: 'linear-gradient(180deg,#fce7f3 0%,#fbcfe8 100%)',
+    showAddress: true,
+    footerClinic: true,
+    defaults: {
+      subtitle: '院语相思 鹊鸣情长',
+      message: '愿有情人齿健笑开\n爱在朝夕，更在长久',
+    },
+    overlays: [
+      { field: 'subtitle', top: '21%', left: '28px', right: '28px', align: 'center', fontSize: 14, color: '#7f1d1d', weight: 600, lineHeight: 1.45, shadow: false },
+      { field: 'message', top: '26%', left: '32px', right: '32px', align: 'center', fontSize: 12, color: '#9f1239', weight: 400, lineHeight: 1.7, multiline: true, shadow: false },
+    ],
+    footer: { bg: 'transparent', color: '#57534e', height: 44, fontSize: 9 },
   },
 };
 
@@ -783,6 +816,26 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function shadeHex(hex, amount) {
+  const [r, g, b] = hexToRgb(hex);
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  return `#${[clamp(r + amount), clamp(g + amount), clamp(b + amount)].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function rgbaHex(hex, alpha) {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function careThemeGradient(color) {
+  return `linear-gradient(135deg, ${shadeHex(color, -35)} 0%, ${color} 52%, ${shadeHex(color, 28)} 100%)`;
+}
+
 function getSchCustomGreeting() {
   return (document.getElementById('sch-greeting')?.value || '').trim();
 }
@@ -801,16 +854,31 @@ function getThemeGradient(themeKey) {
 }
 
 // ==================== 风格选择器 ====================
+function tplPillButton(label, color, active, onclick, themeActive = false) {
+  const base = 'tpl-pill px-3 py-1.5 rounded-full text-xs border';
+  let cls = `${base} border-slate-200 text-slate-600 hover:bg-slate-50`;
+  let extraStyle = '';
+  if (active) {
+    if (themeActive) {
+      cls = `${base} active font-medium`;
+      extraStyle = `border-color:${color};background-color:${rgbaHex(color, 0.12)};color:${color};box-shadow:0 0 0 2px ${rgbaHex(color, 0.35)}`;
+    } else {
+      cls = `${base} active border-teal-500 bg-teal-50 text-teal-700 font-medium`;
+    }
+  }
+  const styleAttr = extraStyle ? ` style="${extraStyle}"` : '';
+  return `<button type="button" onclick="${onclick}" class="${cls}"${styleAttr}>
+    <span class="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style="background:${color}"></span><span class="align-middle">${esc(label)}</span>
+  </button>`;
+}
+
 function renderStylePills() {
   const autoTheme = detectAutoTheme();
   const autoLabel = THEMES[autoTheme]?.tag || '自动';
   const container = document.getElementById('style-pills');
   container.innerHTML = Object.entries(THEMES).map(([key, t]) => {
     const label = key === 'auto' ? `节日自动 · ${autoLabel}` : t.label;
-    const active = selectedStyle === key;
-    return `<button onclick="selectStyle('${key}')" class="style-pill px-3 py-1.5 rounded-full text-xs border ${active ? 'active border-teal-500 bg-teal-50 text-teal-700 font-medium' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}">
-      <span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:${t.color}"></span>${label}
-    </button>`;
+    return tplPillButton(label, t.color, selectedStyle === key, `selectStyle('${key}')`);
   }).join('');
 }
 
@@ -1313,13 +1381,9 @@ async function renderSchedulePreview() {
 
 // ==================== 术后护理 ====================
 function renderTemplateGrid() {
-  document.getElementById('tpl-grid').innerHTML = Object.entries(CARE_TEMPLATES).map(([key, t]) => `
-    <div class="tpl-card border border-slate-200 rounded-xl p-3 text-center relative ${key === selectedTemplate ? 'active' : ''}"
-      onclick="selectTemplate('${key}')">
-      ${key === selectedTemplate ? '<div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-500"></div>' : ''}
-      <div class="w-8 h-8 mx-auto rounded-lg mb-1.5 flex items-center justify-center text-xs font-bold text-white" style="background:${t.color}">${t.label.slice(0,2)}</div>
-      <div class="text-xs font-medium text-slate-700">${t.label}</div>
-    </div>`).join('');
+  document.getElementById('tpl-grid').innerHTML = Object.entries(CARE_TEMPLATES).map(([key, t]) =>
+    tplPillButton(t.label, t.color, key === selectedTemplate, `selectTemplate('${key}')`, true)
+  ).join('');
 }
 
 function selectTemplate(key) {
@@ -1350,14 +1414,14 @@ function buildCareHTML() {
     </tr>`).join('');
 
   return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
-    <div style="background:${MEDICAL_GRADIENT};padding:24px 20px 20px;box-sizing:border-box;">
+    <div style="background:${careThemeGradient(c)};padding:24px 20px 20px;box-sizing:border-box;">
       <div style="font-size:18px;font-weight:700;color:#ffffff;line-height:26px;">${esc(tpl.title)}</div>
       <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;">${esc(clinic)}</div>
     </div>
     <div style="padding:16px;box-sizing:border-box;">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;">${steps}</table>
-      ${advice ? `<div style="margin-top:4px;padding:12px;border:1px dashed #99f6e4;border-radius:8px;background:#f0fdfa;box-sizing:border-box;">
-        <div style="font-size:12px;font-weight:600;color:#0f766e;margin-bottom:4px;">医生建议</div>
+      ${advice ? `<div style="margin-top:4px;padding:12px;border:1px dashed ${rgbaHex(c, 0.45)};border-radius:8px;background:${rgbaHex(c, 0.08)};box-sizing:border-box;">
+        <div style="font-size:12px;font-weight:600;color:${shadeHex(c, -25)};margin-bottom:4px;">医生建议</div>
         <div style="font-size:12px;color:#475569;line-height:18px;">${esc(advice)}</div>
       </div>` : ''}
       ${followup ? `<div style="margin-top:8px;padding:12px;border-radius:8px;background:#f1f5f9;box-sizing:border-box;">
@@ -1376,11 +1440,37 @@ function renderCarePreview() {
 }
 
 // ==================== 其他图文 ====================
+function messageTextareaMinRows(type) {
+  if (type === 'notice-card' || type === 'promo-card') return 12;
+  if (type === 'dental-day-card') return 5;
+  return 4;
+}
+
+function fitTextareaRows(el, minRows, maxRows = 20) {
+  if (!el) return;
+  const lines = Math.max(minRows, (el.value || '').split('\n').length);
+  el.rows = Math.min(maxRows, lines);
+}
+
+function onOtherMessageInput(el) {
+  const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
+  fitTextareaRows(el, messageTextareaMinRows(tpl?.type));
+  renderOtherPreview();
+}
+
+function resolveOtherClinicName(raw) {
+  const name = (raw || '').split('\n').map(s => s.trim()).filter(Boolean)[0] || '';
+  if (name && name !== '诊所名称') return name;
+  return window.CLINIC_INFO?.name || '';
+}
+
 function getOtherFormData() {
   const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
   const d = tpl.defaults || {};
+  const clinicRaw = document.getElementById('other-clinic').value || d.clinic || window.CLINIC_INFO?.name || '诊所名称';
+  const clinicSingle = resolveOtherClinicName(clinicRaw) || '诊所名称';
   return {
-    clinic: document.getElementById('other-clinic').value || d.clinic || '诊所名称',
+    clinic: tpl.type === 'notice-card' ? clinicRaw : clinicSingle,
     phone: document.getElementById('other-phone').value || d.phone || '',
     address: document.getElementById('other-address').value || d.address || '',
     subtitle: document.getElementById('other-subtitle').value || d.subtitle || '',
@@ -1409,22 +1499,45 @@ function buildOtherImageOverlayHTML(tpl, data) {
     </div>`;
   }).join('');
 
-  const footerParts = [];
-  if (tpl.showAddress) {
-    if (data.phone) footerParts.push(`TEL ${esc(data.phone)}`);
-    if (data.address) footerParts.push(esc(data.address));
+  const footerColor = tpl.footer?.color || '#334155';
+  const footerBg = tpl.footer?.bg || 'transparent';
+  const footerH = tpl.footer?.height || 36;
+  const footerSmall = tpl.footer?.fontSize || 10;
+  let footerHtml = '';
+
+  if (tpl.footerClinic) {
+    const clinicName = resolveOtherClinicName(data.clinic);
+    const contactParts = [];
+    if (data.phone) contactParts.push(`TEL ${esc(data.phone)}`);
+    if (data.address) contactParts.push(esc(data.address));
+    const footerShadow = tpl.footer?.textShadow ? `text-shadow:${tpl.footer.textShadow};` : '';
+    if (clinicName || contactParts.length) {
+      footerHtml = `<div style="position:absolute;left:0;right:0;bottom:0;height:${footerH}px;background:${footerBg};display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;z-index:2;padding:0 14px;box-sizing:border-box;">
+        ${clinicName ? `<div style="font-size:11px;font-weight:600;color:${footerColor};line-height:1.35;margin-bottom:2px;${footerShadow}">${esc(clinicName)}</div>` : ''}
+        ${contactParts.length ? `<div style="font-size:${footerSmall}px;color:${footerColor};line-height:1.4;${footerShadow}">${contactParts.join(' | ')}</div>` : ''}
+      </div>`;
+    }
   } else {
-    if (data.clinic && data.clinic !== '诊所名称') footerParts.push(esc(data.clinic));
-    if (data.phone) footerParts.push(`咨询电话：${esc(data.phone)}`);
+    const footerParts = [];
+    if (tpl.showAddress) {
+      if (data.phone) footerParts.push(`电话：${esc(data.phone)}`);
+      if (data.address) footerParts.push(esc(data.address));
+    } else {
+      if (data.clinic && data.clinic !== '诊所名称') footerParts.push(esc(data.clinic));
+      if (data.phone) footerParts.push(`咨询电话：${esc(data.phone)}`);
+    }
+    const footerText = footerParts.join('  ');
+    if (footerText) {
+      footerHtml = `<div style="position:absolute;left:0;right:0;bottom:0;height:${footerH}px;background:${footerBg};display:table;width:100%;z-index:2;">
+        <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:${footerSmall}px;color:${footerColor};padding:0 14px;line-height:1.45;">${footerText}</div>
+      </div>`;
+    }
   }
-  const footerText = footerParts.join(tpl.showAddress ? ' | ' : '  ');
 
   return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
     <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center center;display:block;" />
     ${titleHtml}${overlays}
-    ${footerText ? `<div style="position:absolute;left:0;right:0;bottom:0;height:${tpl.footer.height}px;background:${tpl.footer.bg};display:table;width:100%;z-index:2;">
-      <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:10px;color:${tpl.footer.color};padding:0 12px;line-height:14px;">${footerText}</div>
-    </div>` : ''}
+    ${footerHtml}
   </div>`;
 }
 
@@ -1461,71 +1574,81 @@ function parsePromoSections(text) {
 }
 
 function buildPromoSectionHTML(sections) {
-  const accent = '#14b8a6';
   return sections.map(sec => {
-    const badge = sec.label
-      ? `<div style="display:inline-block;background:${accent};color:#fff;font-size:9px;padding:3px 10px;border-radius:10px;font-weight:600;position:relative;z-index:1;">${esc(sec.label)}</div>`
-      : '';
-    const num = sec.num
-      ? `<div style="position:absolute;left:0;top:-10px;font-size:40px;font-weight:800;color:rgba(20,184,196,0.18);line-height:1;pointer-events:none;">${esc(sec.num)}</div>`
-      : '';
     const items = sec.items.map(item => {
       if (item.type === 'num') {
-        return `<div style="display:flex;gap:5px;margin-bottom:4px;align-items:flex-start;">
-          <div style="width:13px;height:13px;background:${accent};color:#fff;font-size:7px;line-height:13px;text-align:center;border-radius:2px;flex-shrink:0;">${esc(item.n)}</div>
-          <div style="font-size:9px;color:#334155;line-height:13px;flex:1;">${esc(item.text)}</div>
-        </div>`;
+        return `<div style="font-size:9px;color:#334155;line-height:14px;margin-bottom:4px;">${esc(item.n)}. ${esc(item.text)}</div>`;
       }
       if (item.type === 'kv') {
         return `<div style="font-size:9px;line-height:14px;margin-bottom:3px;">
           <span style="color:#64748b;">${esc(item.key)}</span> <span style="color:#334155;">${esc(item.val)}</span>
         </div>`;
       }
-      return `<div style="font-size:9px;color:#334155;line-height:14px;margin-top:5px;">${esc(item.text)}</div>`;
+      return `<div style="font-size:9px;color:#334155;line-height:14px;margin-bottom:4px;">${esc(item.text)}</div>`;
     }).join('');
-    return `<div style="position:relative;margin-bottom:6px;padding-left:2px;">${num}${badge}${items}</div>`;
+    return `<div style="margin-bottom:6px;">${items}</div>`;
   }).join('');
 }
 
-// 坐标按 promo-bg.png（724×1024）实测：橙条 y243-303 x128-596，正文安全区 y312-656 x155-568
-function promoLayoutCoords(h) {
-  const rh = h / 1024;
+// 坐标按 promo-bg.png（724×1024）实测；纵向用百分比，导出与预览背景拉伸时位置一致
+function promoLayoutCoords() {
   const rw = EXPORT_W / 724;
   return {
-    titleTop: Math.round(112 * rh),
-    ribbonTop: Math.round(252 * rh),
-    ribbonH: Math.round(48 * rh),
+    titleTop: '10.35%',
+    ribbonTop: '25.1%',
+    ribbonH: '5.3%',
     ribbonLeft: Math.round(128 * rw),
     ribbonRight: Math.round(128 * rw),
-    contentTop: Math.round(312 * rh),
-    contentLeft: Math.round(155 * rw),
-    contentRight: Math.round(156 * rw),
-    contentBottom: Math.round(368 * rh),
+    contentTop: '33.4%',
+    contentLeft: Math.round(148 * rw),
+    contentRight: Math.round(148 * rw),
+    contentBottom: '35.9%',
   };
+}
+
+function promoTitleStyle(accent) {
+  const stroke = [
+    '-1px -1px 0 #fff', '1px -1px 0 #fff', '-1px 1px 0 #fff', '1px 1px 0 #fff',
+    '0 -1px 0 #fff', '0 1px 0 #fff', '-1px 0 0 #fff', '1px 0 0 #fff',
+    '0 0 8px rgba(255,255,255,0.95)', `0 2px 0 ${accent}`, '0 3px 8px rgba(6,95,70,0.18)',
+  ].join(',');
+  return `font-size:26px;font-weight:800;color:${accent};line-height:1.08;letter-spacing:3px;text-shadow:${stroke};`;
+}
+
+function syncPromoPosterHeight(root, previewEl) {
+  const baseH = posterDisplayHeight(OTHER_TEMPLATES.promo);
+  if (root) {
+    root.style.height = baseH + 'px';
+    root.style.overflow = 'hidden';
+  }
+  if (previewEl) previewEl.style.height = baseH + 'px';
+  return baseH;
 }
 
 function buildOtherPromoHTML(tpl, data) {
   const h = posterDisplayHeight(tpl);
-  const lay = promoLayoutCoords(h);
+  const lay = promoLayoutCoords();
   const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
   const sections = parsePromoSections(data.message || '');
   const cardHtml = buildPromoSectionHTML(sections);
   const accent = '#047857';
 
   const ribbonHtml = data.subtitle
-    ? `<div style="position:absolute;top:${lay.ribbonTop}px;left:${lay.ribbonLeft}px;right:${lay.ribbonRight}px;height:${lay.ribbonH}px;display:table;z-index:2;">
-        <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:10px;color:#ffffff;font-weight:600;letter-spacing:1px;line-height:1.1;padding:0 8px;">${esc(data.subtitle)}</div>
+    ? `<div style="position:absolute;top:${lay.ribbonTop};left:${lay.ribbonLeft}px;right:${lay.ribbonRight}px;height:${lay.ribbonH};display:table;z-index:2;box-sizing:border-box;">
+        <div style="display:table-cell;vertical-align:middle;text-align:center;font-size:12px;color:#ffffff;font-weight:700;letter-spacing:2px;line-height:1.1;padding:6px 8px 2px;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.12);">${esc(data.subtitle)}</div>
       </div>`
     : '';
 
   return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
     <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
-    <div style="position:absolute;top:${lay.titleTop}px;left:0;right:0;text-align:center;z-index:2;padding:0 20px;box-sizing:border-box;">
-      <div style="font-size:24px;font-weight:800;color:${accent};line-height:1.1;letter-spacing:2px;text-shadow:0 2px 0 #065f46,0 3px 6px rgba(0,0,0,0.12);">${esc(titleText)}</div>
+    <div style="position:absolute;top:${lay.titleTop};left:0;right:0;text-align:center;z-index:2;padding:0 18px;box-sizing:border-box;">
+      <div style="${promoTitleStyle(accent)}">${esc(titleText)}</div>
     </div>
     ${ribbonHtml}
-    <div style="position:absolute;top:${lay.contentTop}px;left:${lay.contentLeft}px;right:${lay.contentRight}px;bottom:${lay.contentBottom}px;z-index:2;overflow:hidden;box-sizing:border-box;">
-      ${cardHtml}
+    <div style="position:absolute;top:${lay.contentTop};left:${lay.contentLeft}px;right:${lay.contentRight}px;bottom:${lay.contentBottom};z-index:2;box-sizing:border-box;">
+      <div class="promo-content-panel" style="background:rgba(255,255,255,0.52);border-radius:10px;padding:8px 10px 10px;height:100%;box-sizing:border-box;overflow:hidden;">
+        ${cardHtml}
+      </div>
     </div>
   </div>`;
 }
@@ -1604,12 +1727,49 @@ function dentalDayLayoutCoords(h) {
   return {
     titleTop: Math.round(498 * rh),
     dateTop: Math.round(558 * rh),
-    sub1Top: Math.round(618 * rh),
-    sub2Top: Math.round(658 * rh),
+    contentTop: Math.round(612 * rh),
+    contentLeft: Math.round(36 * rw),
+    contentRight: Math.round(36 * rw),
+    contentBottom: Math.round(118 * rh),
     footerTop: Math.round(928 * rh),
-    footerLeft: Math.round(128 * rw),
-    footerRight: Math.round(18 * rw),
   };
+}
+
+function dentalDayContentMinHeight(h, lay) {
+  return Math.max(60, h - lay.contentTop - lay.contentBottom);
+}
+
+function syncDentalDayPosterHeight(root, previewEl) {
+  const tpl = OTHER_TEMPLATES.dental_day;
+  const baseH = posterDisplayHeight(tpl);
+  if (!root) return baseH;
+  const lay = dentalDayLayoutCoords(baseH);
+  const panel = root.querySelector('.dental-day-content-panel');
+  const needH = panel
+    ? Math.max(baseH, lay.contentTop + panel.offsetHeight + lay.contentBottom)
+    : baseH;
+  const grow = needH - baseH;
+  root.style.height = needH + 'px';
+  root.style.overflow = 'visible';
+  const footer = root.querySelector('.dental-day-footer');
+  if (footer) footer.style.top = (lay.footerTop + grow) + 'px';
+  if (previewEl) previewEl.style.height = needH + 'px';
+  return needH;
+}
+
+function buildDentalDayMessageHTML(lines, lay, h) {
+  if (!lines.length) return '';
+  const minH = dentalDayContentMinHeight(h, lay);
+  const fontSize = lines.length <= 2 ? 16 : lines.length <= 5 ? 14 : 12;
+  const lineGap = lines.length <= 5 ? 6 : 4;
+  const linesHtml = lines.map((line, i) =>
+    `<div style="font-size:${fontSize}px;font-weight:400;color:#ffffff;line-height:1.45;letter-spacing:1.5px;text-align:center;${i ? `margin-top:${lineGap}px;` : ''}">${esc(line)}</div>`
+  ).join('');
+  return `<div style="position:absolute;top:${lay.contentTop}px;left:${lay.contentLeft}px;right:${lay.contentRight}px;z-index:2;box-sizing:border-box;">
+    <div class="dental-day-content-panel" style="background:rgba(255,255,255,0.22);border-radius:10px;padding:12px 14px;min-height:${minH}px;box-sizing:border-box;overflow:visible;">
+      ${linesHtml}
+    </div>
+  </div>`;
 }
 
 function buildOtherDentalDayHTML(tpl, data) {
@@ -1617,8 +1777,6 @@ function buildOtherDentalDayHTML(tpl, data) {
   const lay = dentalDayLayoutCoords(h);
   const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
   const msgLines = (data.message || '').split('\n').map(s => s.trim()).filter(Boolean);
-  const sub1 = msgLines[0] || '';
-  const sub2 = msgLines[1] || '';
 
   const centerText = (top, text, size, weight, spacing) => text
     ? `<div style="position:absolute;top:${top}px;left:0;right:0;text-align:center;z-index:2;padding:0 20px;box-sizing:border-box;">
@@ -1631,17 +1789,16 @@ function buildOtherDentalDayHTML(tpl, data) {
   if (data.address) footerLines.push(`地址：${esc(data.address)}`);
 
   const footerHtml = footerLines.length
-    ? `<div style="position:absolute;top:${lay.footerTop}px;left:16px;right:16px;z-index:2;text-align:center;">
+    ? `<div class="dental-day-footer" style="position:absolute;top:${lay.footerTop}px;left:16px;right:16px;z-index:2;text-align:center;">
         ${footerLines.map((line, i) => `<div style="font-size:10px;color:#334155;line-height:15px;${i ? 'margin-top:4px;' : ''}">${line}</div>`).join('')}
       </div>`
     : '';
 
-  return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
+  return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:visible;box-sizing:border-box;">
     <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
     ${centerText(lay.titleTop, titleText, 28, 800, 'letter-spacing:3px;line-height:1.2;')}
     ${centerText(lay.dateTop, data.subtitle, 11, 400, 'letter-spacing:1px;opacity:0.95;')}
-    ${centerText(lay.sub1Top, sub1, 16, 400, 'letter-spacing:2px;')}
-    ${centerText(lay.sub2Top, sub2, 16, 400, 'letter-spacing:2px;')}
+    ${buildDentalDayMessageHTML(msgLines, lay, h)}
     ${footerHtml}
   </div>`;
 }
@@ -1649,8 +1806,8 @@ function buildOtherDentalDayHTML(tpl, data) {
 function buildOtherNoticeCardHTML(tpl, data) {
   const h = posterDisplayHeight(tpl);
   const lay = noticeLayoutCoords(h);
-  const titleLine1 = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.titleLine1 || '重要');
-  const titleLine2 = tpl.titleLine2 || '诊所通知';
+  const titleRaw = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.titleLine1 || '重要');
+  const titleLines = titleRaw.split('\n').map(s => s.trim()).filter(Boolean);
   const sections = parseNoticeSections(data.message || '');
   const cardHtml = buildNoticeSectionHTML(sections);
   const accent = tpl.color || '#3b82f6';
@@ -1673,8 +1830,7 @@ function buildOtherNoticeCardHTML(tpl, data) {
   return `<div class="export-root" data-fallback-gradient="${tpl.fallbackGradient || ''}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
     <img src="${posterImageSrc(tpl.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;" />
     <div style="position:absolute;top:${lay.titleTop}px;left:${lay.padX}px;right:${lay.padX}px;z-index:2;">
-      <div style="font-size:24px;font-weight:800;color:${accent};line-height:1.15;letter-spacing:0.5px;">${esc(titleLine1)}</div>
-      <div style="font-size:24px;font-weight:800;color:${accent};line-height:1.15;letter-spacing:0.5px;">${esc(titleLine2)}</div>
+      ${titleLines.map((line, i) => `<div style="font-size:24px;font-weight:800;color:${accent};line-height:1.15;letter-spacing:0.5px;${i ? 'margin-top:2px;' : ''}">${esc(line)}</div>`).join('')}
     </div>
     ${pillHtml}
     <div style="position:absolute;top:${lay.contentTop}px;left:${lay.padX}px;right:${lay.padX}px;bottom:${lay.contentBottom}px;z-index:2;overflow:hidden;box-sizing:border-box;padding:4px 6px;">
@@ -1730,13 +1886,9 @@ function buildOtherHTML() {
 }
 
 function renderOtherTemplateGrid() {
-  document.getElementById('other-tpl-grid').innerHTML = Object.entries(OTHER_TEMPLATES).map(([key, t]) => `
-    <div class="tpl-card border border-slate-200 rounded-xl p-3 text-center relative ${key === selectedOtherTemplate ? 'active' : ''}"
-      onclick="selectOtherTemplate('${key}')">
-      ${key === selectedOtherTemplate ? '<div class="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-500"></div>' : ''}
-      <div class="w-8 h-8 mx-auto rounded-lg mb-1.5 flex items-center justify-center text-xs font-bold text-white" style="background:${t.color}">${t.label.slice(0,2)}</div>
-      <div class="text-xs font-medium text-slate-700">${t.label}</div>
-    </div>`).join('');
+  document.getElementById('other-tpl-grid').innerHTML = Object.entries(OTHER_TEMPLATES).map(([key, t]) =>
+    tplPillButton(t.label, t.color, key === selectedOtherTemplate, `selectOtherTemplate('${key}')`)
+  ).join('');
 }
 
 function applyOtherTemplateDefaults() {
@@ -1752,18 +1904,22 @@ function applyOtherTemplateDefaults() {
   if ('address' in d && !window.CLINIC_INFO?.address) address.value = d.address || '';
   sub.value = d.subtitle || '';
   msg.value = d.message || '';
+  fitTextareaRows(msg, messageTextareaMinRows(tpl.type));
   sub.placeholder = tpl.type === 'dental-day-card' ? '如：2025.9.20'
     : (d.subtitle ? `如：${d.subtitle}` : '可填写副标题');
   msg.placeholder = tpl.type === 'notice-card' ? '用 # 标题、• 条目|说明 格式填写'
-    : tpl.type === 'promo-card' ? '用 # 序号|标题、数字|条目、关键词|内容 格式填写'
-    : tpl.type === 'dental-day-card' ? '每行一句宣传语，如：呵护您的口腔'
+    : tpl.type === 'promo-card' ? '每行一句；列表用 数字|条目；详情用 关键词|内容（# 分段仅换段，不显示标题）'
+    : tpl.type === 'dental-day-card' ? '每行一句宣传语，回车换行，支持多行'
     : (d.message ? `如：${d.message.split('\n')[0]}` : '可填写正文文案');
   const clinicLabel = document.getElementById('other-clinic-label');
   if (clinicLabel) {
     const isTitleTpl = tpl.type === 'dental-day-card' || tpl.type === 'promo-card';
-    clinicLabel.textContent = isTitleTpl ? '主标题' : '诊所名称';
+    clinicLabel.textContent = isTitleTpl ? '主标题' : (tpl.footerClinic ? '门诊名称' : '诊所名称');
+    clinic.rows = tpl.type === 'notice-card' ? 2 : 1;
     clinic.placeholder = tpl.type === 'dental-day-card' ? '如：全国爱牙日'
       : tpl.type === 'promo-card' ? '如：全国爱牙日'
+      : tpl.type === 'notice-card' ? '如：西大口腔门诊部，回车可换行'
+      : tpl.footerClinic ? '如：西大口腔门诊部'
       : '如：阳光口腔诊所';
   }
   document.getElementById('other-address-wrap').classList.toggle('hidden', !tpl.showAddress);
@@ -1783,7 +1939,12 @@ async function renderOtherPreview() {
   const preview = document.getElementById('other-preview');
   preview.innerHTML = buildOtherHTML();
   applyPreviewHeight(preview, tpl.backgroundImage, DEFAULT_POSTER_H, tpl);
-  requestAnimationFrame(() => requestAnimationFrame(updateOtherPreviewScale));
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const root = preview.querySelector('.export-root');
+    if (selectedOtherTemplate === 'promo') syncPromoPosterHeight(root, preview);
+    else if (selectedOtherTemplate === 'dental_day') syncDentalDayPosterHeight(root, preview);
+    updateOtherPreviewScale();
+  }));
 }
 
 // ==================== 导出图片 ====================
@@ -1826,6 +1987,11 @@ async function exportImage(type) {
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   let exportH = parseInt(el.style.height, 10) || el.offsetHeight || DEFAULT_POSTER_H;
+  if (type === 'other' && selectedOtherTemplate === 'promo') {
+    exportH = syncPromoPosterHeight(el, null);
+  } else if (type === 'other' && selectedOtherTemplate === 'dental_day') {
+    exportH = syncDentalDayPosterHeight(el, null);
+  }
   if (exportH < 1) exportH = DEFAULT_POSTER_H;
 
   try {
