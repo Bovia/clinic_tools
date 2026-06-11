@@ -6,6 +6,7 @@
   <title>齿科设计助手 · 一键出图</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -23,8 +24,8 @@
     .tab-active { background: #0d9488; color: #fff; box-shadow: 0 2px 8px rgba(13,148,136,.35); }
     .tpl-pill { transition: all .2s; }
     .tpl-pill.active { box-shadow: 0 0 0 2px #0d9488; }
-    .cal-day { cursor: pointer; transition: background .15s; }
-    .cal-day:hover { background: #f1f5f9; }
+    .cal-day { cursor: pointer; }
+    .cal-day-cell { position: relative; }
     .preview-card {
       width: 360px;
       flex-shrink: 0;
@@ -106,7 +107,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 class="text-xl font-bold text-slate-900">节假日排期表</h2>
-            <p class="text-sm text-slate-500 mt-1">自动获取节假日数据，点击预览日历中的日期可切换出诊/休息，一键导出通知图</p>
+            <p class="text-sm text-slate-500 mt-1">自动获取节假日数据，左键点击切换诊↔休，右键切换高亮（出诊显示「上班」、休息显示「休息」），一键导出通知图</p>
           </div>
           <button onclick="refreshHolidays()" class="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -128,6 +129,11 @@
               <span id="month-label" class="text-base font-semibold min-w-[120px] text-center"></span>
               <button onclick="changeMonth(1)" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-600 text-sm">&gt;</button>
             </div>
+            <label class="flex items-center justify-between gap-3 py-1 cursor-pointer">
+              <span class="text-xs text-slate-500">展示农历</span>
+              <input id="sch-show-lunar" type="checkbox" checked onchange="renderSchedulePreview()"
+                class="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/30" />
+            </label>
             <div>
               <label class="text-xs text-slate-500 mb-1 block">诊所名称</label>
               <input id="sch-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderSchedulePreview()"
@@ -294,6 +300,7 @@ let currentYear = new Date().getFullYear();
 let currentMonth = new Date().getMonth(); // 0-indexed
 let holidayData = {};       // 'MM-DD' -> { holiday, name, date }
 let dayOverrides = {};      // 'YYYY-MM-DD' -> true(出诊) / false(休息)
+let dayEmphasis = {};       // 'YYYY-MM-DD' -> true(高亮，文案随诊休状态)
 let selectedStyle = 'auto';
 let selectedTemplate = 'extraction';
 let selectedOtherTemplate = 'dental_day';
@@ -305,7 +312,7 @@ const THEMES = {
     label: '春节海报',
     color: '#dc2626',
     gradient: 'linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#f59e0b 100%)',
-    greeting: '恭祝新春快乐',
+    greeting: '恭祝新春，齿健笑开',
     tag: '春节',
     backgroundImage: 'assets/spring-bg.jpg',
     posterHeight: 644,
@@ -315,7 +322,7 @@ const THEMES = {
     label: '清明海报',
     color: '#059669',
     gradient: 'linear-gradient(135deg,#059669 0%,#10b981 50%,#0d9488 100%)',
-    greeting: '清明安康',
+    greeting: '清明时节，守护口腔健康',
     tag: '清明',
     backgroundImage: 'assets/qingming-bg.png',
     posterHeight: 644,
@@ -325,7 +332,7 @@ const THEMES = {
     label: '劳动海报',
     color: '#ea580c',
     gradient: 'linear-gradient(135deg,#ea580c 0%,#f97316 50%,#fb923c 100%)',
-    greeting: '劳动节快乐',
+    greeting: '劳动节快乐，愿您齿坚体健',
     tag: '劳动节',
     backgroundImage: 'assets/labor-bg.png',
     posterHeight: 644,
@@ -335,7 +342,7 @@ const THEMES = {
     label: '端午海报',
     color: '#047857',
     gradient: 'linear-gradient(135deg,#047857 0%,#059669 50%,#14b8a6 100%)',
-    greeting: '端午安康',
+    greeting: '端午安康，齿健人康',
     tag: '端午',
     backgroundImage: 'assets/dragon-bg.png',
     posterHeight: 644,
@@ -345,7 +352,7 @@ const THEMES = {
     label: '中秋海报',
     color: '#6d28d9',
     gradient: 'linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#d97706 100%)',
-    greeting: '中秋快乐',
+    greeting: '中秋团圆，笑口常开',
     tag: '中秋',
     backgroundImage: 'assets/midautumn-bg.png',
     posterHeight: 644,
@@ -355,7 +362,7 @@ const THEMES = {
     label: '国庆海报',
     color: '#dc2626',
     gradient: 'linear-gradient(135deg,#991b1b 0%,#dc2626 50%,#fbbf24 100%)',
-    greeting: '国庆快乐',
+    greeting: '国庆佳节，口腔健康常相伴',
     tag: '国庆',
     backgroundImage: 'assets/national-bg.png',
     posterHeight: 644,
@@ -373,6 +380,7 @@ const EXPORT_W = 360;
 const DEFAULT_POSTER_H = 640;
 const PREVIEW_FRAME_PAD = 32;
 const PREVIEW_MIN_FRAME_H = 200;
+const PREVIEW_WIDTH_RATIO = 0.88;
 const imageSizeCache = {};
 /** 更换海报背景图后，把此数字 +1 可强制浏览器刷新缓存 */
 const POSTER_ASSET_VERSION = 18;
@@ -499,7 +507,7 @@ const OTHER_TEMPLATES = {
     defaults: {
       clinic: '全国爱牙日',
       subtitle: '2025.9.20',
-      message: '呵护您的口腔\n关爱您的健康',
+      message: '每日刷牙两次，餐后及时漱口\n定期口腔检查，预防胜于治疗',
     },
   },
   notice: {
@@ -511,8 +519,8 @@ const OTHER_TEMPLATES = {
     titleLine1: '重要',
     showAddress: true,
     defaults: {
-      subtitle: '请您留意',
-      message: '# 通知内容\n• 营业时间调整|门诊时间有所变更，请提前确认后再到诊。\n• 预约到诊须知|建议提前预约，到诊时请携带有效证件。\n\n# 就诊时间\n上午：8:30 — 12:00 正常接诊\n下午：14:00 — 18:00 正常接诊',
+      subtitle: '口腔健康提醒',
+      message: '# 就诊须知\n• 预约到诊|建议提前预约，到院即可接受基础口腔检查。\n• 洗牙护齿|定期洁牙，远离牙周疾病。\n\n# 服务时间\n上午：8:30 — 12:00 正常接诊\n下午：14:00 — 18:00 正常接诊',
     },
   },
   promo: {
@@ -526,7 +534,7 @@ const OTHER_TEMPLATES = {
     defaults: {
       clinic: '全国爱牙日',
       subtitle: '全民科普讲座',
-      message: '自世界卫生组织倡导，每年开展口腔健康宣传，提升全民口腔保健意识。\n\n1|免费口腔检查\n2|专家现场答疑\n3|儿童涂氟体验\n4|爱牙科普讲解\n\n时间|2025年9月20日\n地点|欢迎到院咨询\n报名|电话预约，名额有限',
+      message: '口腔健康关乎全身，从小养成科学刷牙习惯。\n\n1|免费口腔检查\n2|专家现场答疑\n3|儿童涂氟体验\n4|爱牙科普讲解\n\n时间|每年9月20日\n地点|欢迎到院咨询\n报名|电话预约，名额有限',
     },
   },
   birthday: {
@@ -539,7 +547,7 @@ const OTHER_TEMPLATES = {
     showAddress: false,
     defaults: {
       subtitle: '愿您齿健人康 笑口常开',
-      message: '在这个特别的日子里\n祝您生活美满，幸福安康',
+      message: '一岁一礼，一寸欢喜\n愿好牙相伴，尽享美食人生',
     },
     overlays: [
       { field: 'subtitle', top: '14%', fontSize: 14, color: '#92400e', weight: 600, shadow: false },
@@ -556,8 +564,8 @@ const OTHER_TEMPLATES = {
     fallbackGradient: 'linear-gradient(180deg,#faf6f0 0%,#ede8df 100%)',
     showAddress: false,
     defaults: {
-      subtitle: '有一种爱 叫父爱如山',
-      message: '感恩相伴，愿您身体健康',
+      subtitle: '父爱如山，齿健相伴',
+      message: '感谢老爸一直以来的守护\n愿您牙齿坚固，吃嘛嘛香',
     },
     overlays: [
       { field: 'subtitle', top: '4%', left: '28px', align: 'left', fontSize: 15, color: '#1e293b', weight: 600, shadow: false },
@@ -573,8 +581,8 @@ const OTHER_TEMPLATES = {
     fallbackGradient: 'linear-gradient(180deg,#fff7ed 0%,#fce7f3 100%)',
     showAddress: false,
     defaults: {
-      subtitle: '愿岁月温柔以待',
-      message: '感恩有您，祝愿健康常乐',
+      subtitle: '母爱如雨，护齿暖心',
+      message: '感恩妈妈的碎碎念念\n愿您齿白唇红，笑容常在',
     },
     overlays: [
       { field: 'subtitle', top: '10px', left: '16px', right: '50%', align: 'left', fontSize: 12, color: '#b45309', weight: 600, lineHeight: 1.3, shadow: false },
@@ -609,8 +617,8 @@ const OTHER_TEMPLATES = {
     showAddress: true,
     footerClinic: true,
     defaults: {
-      subtitle: '不被世俗定义，绽放独特光芒',
-      message: '致敬每一位女性\n美，从爱自己开始',
+      subtitle: '自信笑容，从齿开始',
+      message: '致敬每一位女性\n美，从健康口腔与自信笑容开始',
     },
     overlays: [
       { field: 'subtitle', top: '67%', left: '20px', right: '20px', align: 'center', fontSize: 12, color: '#ffffff', weight: 500, lineHeight: 1.5 },
@@ -627,8 +635,8 @@ const OTHER_TEMPLATES = {
     showAddress: true,
     footerClinic: true,
     defaults: {
-      subtitle: '院语相思 鹊鸣情长',
-      message: '愿有情人齿健笑开\n爱在朝夕，更在长久',
+      subtitle: '齿健笑开，情意长久',
+      message: '愿有情人齿健笑开\n爱在朝夕，更在长久相伴',
     },
     overlays: [
       { field: 'subtitle', top: '21%', left: '28px', right: '28px', align: 'center', fontSize: 14, color: '#7f1d1d', weight: 600, lineHeight: 1.45, shadow: false },
@@ -714,6 +722,196 @@ async function refreshHolidays() {
 }
 
 // ==================== 日历逻辑 ====================
+const LUNAR_DAY_CHARS = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+const LUNAR_MONTH_CHARS = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+const LUNAR_INFO = [
+  0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+  0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+  0x04960,0x0a4e0,0x0d260,0x0ea65,0x0d530,0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,
+  0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,
+  0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,0x14b63,0x09370,0x049f8,0x04970,0x064b0,
+  0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,
+  0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,
+  0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,
+  0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,
+  0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,0x0d520,
+  0x0dd45,0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,
+  0x0ada0,0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,
+  0x0aae0,0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,
+  0x055d4,0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,
+  0x052b0,0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,
+  0x0d160,0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,
+  0x0f252,0x0d520,0x0dd45,0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,
+  0x1b255,0x06d20,0x0ada0,0x14b63,
+];
+
+function lunarYearDays(y) {
+  let sum = 348;
+  const info = LUNAR_INFO[y - 1900];
+  for (let i = 0x8000; i > 0x8; i >>= 1) sum += (info & i) ? 1 : 0;
+  return sum + lunarLeapDays(y);
+}
+
+function lunarLeapMonth(y) {
+  return LUNAR_INFO[y - 1900] & 0xf;
+}
+
+function lunarLeapDays(y) {
+  if (lunarLeapMonth(y)) return (LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29;
+  return 0;
+}
+
+function lunarMonthDays(y, m) {
+  return (LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29;
+}
+
+function solarToLunar(y, m, d) {
+  if (y < 1900 || y > 2099 || !LUNAR_INFO[y - 1900]) return null;
+  const cur = new Date(y, m - 1, d, 12, 0, 0);
+  const base = new Date(1900, 0, 31, 12, 0, 0);
+  let offset = Math.floor((cur - base) / 86400000);
+  let i = 1900;
+  let temp = 0;
+  for (; i < 2100 && offset > 0; i++) {
+    temp = lunarYearDays(i);
+    offset -= temp;
+  }
+  if (offset < 0) {
+    offset += temp;
+    i--;
+  }
+  const year = i;
+  const leap = lunarLeapMonth(year);
+  let isLeap = false;
+  i = 1;
+  for (; i < 13 && offset > 0; i++) {
+    if (leap > 0 && i === leap + 1 && !isLeap) {
+      i--;
+      isLeap = true;
+      temp = lunarLeapDays(year);
+    } else {
+      temp = lunarMonthDays(year, i);
+    }
+    if (isLeap && i === leap + 1) isLeap = false;
+    offset -= temp;
+  }
+  if (offset === 0 && leap > 0 && i === leap + 1) {
+    if (isLeap) isLeap = false;
+    else { isLeap = true; i--; }
+  }
+  if (offset < 0) {
+    offset += temp;
+    i--;
+  }
+  return { month: i, day: offset + 1, isLeap };
+}
+
+function isShowLunarCalendar() {
+  const el = document.getElementById('sch-show-lunar');
+  return el ? el.checked : true;
+}
+
+function getLunarDayLabel(y, m, d) {
+  if (typeof Solar !== 'undefined') {
+    try {
+      const lunar = Solar.fromYmd(y, m + 1, d).getLunar();
+      const day = lunar.getDayInChinese();
+      if (day === '初一') return lunar.getMonthInChinese() + '月';
+      return day;
+    } catch (_) { /* 离线时走本地换算 */ }
+  }
+  const lunar = solarToLunar(y, m + 1, d);
+  if (!lunar) return '';
+  if (lunar.day === 1) {
+    const prefix = lunar.isLeap ? '闰' : '';
+    return prefix + LUNAR_MONTH_CHARS[lunar.month - 1] + '月';
+  }
+  return LUNAR_DAY_CHARS[lunar.day - 1] || '';
+}
+
+function calendarLunarLine(d, size, color) {
+  if (!isShowLunarCalendar()) return '';
+  const text = getLunarDayLabel(currentYear, currentMonth, d);
+  if (!text) return '';
+  return `<div style="font-size:${size}px;line-height:10px;color:${color};margin-top:1px;">${esc(text)}</div>`;
+}
+
+function isDayEmphasized(y, m, d) {
+  return !!dayEmphasis[dateKey(y, m, d)];
+}
+
+const CALENDAR_BADGE_STYLES = {
+  work: {
+    color: '#15803d',
+    background: 'rgba(220,252,231,0.96)',
+    border: '1px solid #86efac',
+    shadow: '0 1px 3px rgba(22,163,74,0.2)',
+    pad: '0 3px',
+  },
+  rest: {
+    color: '#dc2626',
+    background: 'rgba(254,226,226,0.96)',
+    border: '1px solid #fca5a5',
+    shadow: '0 1px 3px rgba(220,38,38,0.2)',
+    pad: '0 3px',
+  },
+  'work-emphasis': {
+    color: '#ffffff',
+    background: 'linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)',
+    border: '1px solid #1d4ed8',
+    shadow: '0 2px 6px rgba(37,99,235,0.38)',
+    pad: '1px 5px',
+  },
+  'rest-emphasis': {
+    color: '#ffffff',
+    background: 'linear-gradient(180deg,#ef4444 0%,#dc2626 100%)',
+    border: '1px solid #b91c1c',
+    shadow: '0 2px 6px rgba(220,38,38,0.38)',
+    pad: '1px 5px',
+  },
+};
+
+function calendarDayBadge(text, variant) {
+  const s = CALENDAR_BADGE_STYLES[variant] || CALENDAR_BADGE_STYLES.work;
+  return `<div style="position:absolute;top:-4px;right:-4px;z-index:3;min-width:10px;padding:${s.pad};font-size:6px;font-weight:700;line-height:10px;color:${s.color};background:${s.background};border:${s.border};border-radius:4px;box-shadow:${s.shadow};text-align:center;white-space:nowrap;letter-spacing:0.2px;pointer-events:none;">${text}</div>`;
+}
+
+function calendarStatusBadge(y, m, d, work, emphasized) {
+  if (emphasized) return work ? calendarDayBadge('上班', 'work-emphasis') : calendarDayBadge('休息', 'rest-emphasis');
+  return work ? calendarDayBadge('诊', 'work') : calendarDayBadge('休', 'rest');
+}
+
+function buildScheduleDayCell(d, opts) {
+  const {
+    interactive, cellW, cellH, holidayMaxLen, radius = 7, numSize = 13, numLh = 15,
+    workBg = 'rgba(240,253,244,0.95)', restBg = 'rgba(254,242,242,0.95)',
+    workBorder = '#86efac', restBorder = '#fca5a5',
+    workNumColor = '#15803d', restNumColor = '#dc2626',
+  } = opts;
+  if (!d) return `<td style="width:${cellW}px;height:${cellH}px;padding:0;border:0;box-sizing:border-box;"></td>`;
+  const work = isWorkDay(currentYear, currentMonth, d);
+  const info = getHolidayInfo(currentYear, currentMonth, d);
+  const emphasized = isDayEmphasized(currentYear, currentMonth, d);
+  const holidayLabel = getDayHolidayLabel(info, holidayMaxLen);
+  const numColor = work ? workNumColor : restNumColor;
+  const bg = work ? workBg : restBg;
+  const border = work ? workBorder : restBorder;
+  const lunarLine = calendarLunarLine(d, 8, '#94a3b8');
+  const handlers = interactive
+    ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" oncontextmenu="toggleDayEmphasis(${currentYear},${currentMonth},${d},event)" class="cal-day-cell cal-day"`
+    : ' class="cal-day-cell"';
+  return `<td style="width:${cellW}px;height:${cellH}px;padding:3px 2px 0;border:0;vertical-align:top;overflow:visible;box-sizing:border-box;">
+    <div${handlers} style="position:relative;overflow:visible;width:100%;height:100%;background:${bg};border:1px solid ${border};border-radius:${radius}px;text-align:center;box-sizing:border-box;padding:3px 2px;">
+      ${calendarStatusBadge(currentYear, currentMonth, d, work, emphasized)}
+      <div style="font-size:${numSize}px;font-weight:700;line-height:${numLh}px;color:${numColor};">${d}</div>
+      ${lunarLine}
+      ${holidayLabel
+        ? `<div style="font-size:9px;line-height:12px;color:#dc2626;margin-top:1px;font-weight:500;">${esc(holidayLabel)}</div>`
+        : ''}
+    </div>
+  </td>`;
+}
+
 function dateKey(y, m, d) {
   return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
@@ -741,13 +939,6 @@ function isWorkDay(y, m, d) {
   const k = dateKey(y, m, d);
   if (k in dayOverrides) return dayOverrides[k];
   return defaultIsWork(y, m, d);
-}
-
-function toggleDay(y, m, d) {
-  const k = dateKey(y, m, d);
-  const current = isWorkDay(y, m, d);
-  dayOverrides[k] = !current;
-  renderSchedulePreview();
 }
 
 function initDayStates() {
@@ -790,6 +981,21 @@ function isRealHolidayName(name) {
 
 function isOffDay(info) {
   return info && (info.holiday === true || info.holiday === 1);
+}
+
+function toggleDay(y, m, d) {
+  const k = dateKey(y, m, d);
+  const current = isWorkDay(y, m, d);
+  dayOverrides[k] = !current;
+  renderSchedulePreview();
+}
+
+function toggleDayEmphasis(y, m, d, event) {
+  if (event) event.preventDefault();
+  const k = dateKey(y, m, d);
+  if (dayEmphasis[k]) delete dayEmphasis[k];
+  else dayEmphasis[k] = true;
+  renderSchedulePreview();
 }
 
 function getDayHolidayLabel(info, maxLen = 3) {
@@ -854,8 +1060,8 @@ function updateGreetingPlaceholder() {
   if (!el) return;
   const theme = getActiveTheme();
   el.placeholder = theme.greeting
-    ? `如：${theme.greeting}，阖家幸福！`
-    : '如：祝您节日快乐，阖家幸福！';
+    ? `如：${theme.greeting}！`
+    : '如：愿您齿健人康，笑口常开！';
 }
 
 function getThemeGradient(themeKey) {
@@ -1088,8 +1294,8 @@ function updatePreviewScale(frame, host, preview) {
   if (!baseH) return;
 
   const maxW = Math.max(120, frame.clientWidth - PREVIEW_FRAME_PAD);
-  // 优先按宽度撑满，避免长图被固定框高度压得过小
-  const scale = maxW / baseW;
+  // 按宽度适配，略留边距，避免长图被固定框高度压得过小
+  const scale = (maxW / baseW) * PREVIEW_WIDTH_RATIO;
   const displayW = Math.ceil(baseW * scale);
   const displayH = Math.ceil(baseH * scale);
 
@@ -1235,19 +1441,40 @@ function getGlassPanelStyle(forExport) {
   return 'background:rgba(255,255,255,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.35);border-radius:18px;box-shadow:0 2px 12px rgba(15,23,42,0.06);';
 }
 
+function parseInsetPx(value, base) {
+  if (typeof value === 'string' && value.endsWith('%')) return base * parseFloat(value) / 100;
+  const n = parseFloat(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getPosterCalendarMetrics(theme) {
+  const inset = theme.contentInset || { top: '13%', left: '8%', right: '8%', bottom: '24%' };
+  const panelPadH = 12;
+  const calWrapPadH = 8;
+  const badgeSlack = 6;
+  const available = EXPORT_W
+    - parseInsetPx(inset.left, EXPORT_W)
+    - parseInsetPx(inset.right, EXPORT_W)
+    - panelPadH * 2
+    - calWrapPadH * 2
+    - badgeSlack;
+  const GAP = 2;
+  const ROW_GAP = 4;
+  const cellW = Math.max(32, Math.floor((available - 6 * GAP) / 7));
+  const cellH = isShowLunarCalendar() ? 50 : 46;
+  return { cellW, cellH, GAP, ROW_GAP, panelPadH, calWrapPadH };
+}
+
 // ==================== 节日海报排期（背景图 + 白区叠加） ====================
 function buildPosterScheduleHTML(interactive, themeKey, theme) {
   const forExport = !interactive;
-  const clinic = document.getElementById('sch-clinic').value || '诊所名称';
+  const clinic = (document.getElementById('sch-clinic').value || '').trim();
   const phone = document.getElementById('sch-phone').value;
   const customMsg = getSchCustomGreeting();
   const h = posterHeightFor(theme.backgroundImage, 644);
   const inset = theme.contentInset || { top: '13%', left: '8%', right: '8%', bottom: '24%' };
   const titleColor = theme.color || '#b91c1c';
-  const GAP = 3;
-  const ROW_GAP = 4;
-  const cellW = 39;
-  const cellH = 52;
+  const { cellW, cellH, GAP, ROW_GAP, panelPadH, calWrapPadH } = getPosterCalendarMetrics(theme);
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -1258,26 +1485,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   for (let d = 1; d <= daysInMonth; d++) slots.push(d);
   while (slots.length % 7 !== 0) slots.push(0);
 
-  function dayCell(d) {
-    if (!d) return `<td style="width:${cellW}px;height:${cellH}px;padding:0;border:0;"></td>`;
-    const work = isWorkDay(currentYear, currentMonth, d);
-    const info = getHolidayInfo(currentYear, currentMonth, d);
-    const holidayLabel = getDayHolidayLabel(info, 3);
-    const label = work ? '诊' : '休';
-    const numColor = work ? '#15803d' : '#dc2626';
-    const bg = work ? 'rgba(240,253,244,0.95)' : 'rgba(254,242,242,0.95)';
-    const border = work ? '#86efac' : '#fca5a5';
-    const click = interactive ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" class="cal-day"` : '';
-    return `<td${click} style="width:${cellW}px;height:${cellH}px;padding:0;border:0;vertical-align:top;">
-      <div style="width:${cellW}px;height:${cellH}px;background:${bg};border:1px solid ${border};border-radius:7px;text-align:center;box-sizing:border-box;padding:3px 2px;">
-        <div style="font-size:13px;font-weight:700;line-height:15px;color:${numColor};">${d}</div>
-        ${holidayLabel
-          ? `<div style="font-size:9px;line-height:12px;color:#dc2626;margin-top:2px;font-weight:500;">${esc(holidayLabel)}</div>`
-          : ''}
-        <div style="font-size:9px;font-weight:600;line-height:11px;color:${numColor};margin-top:${holidayLabel ? 2 : 4}px;">${label}</div>
-      </div>
-    </td>`;
-  }
+  const dayCell = d => buildScheduleDayCell(d, { interactive, cellW, cellH, holidayMaxLen: 3, radius: 7, numSize: 13, numLh: 15 });
 
   let calendarRows = '';
   for (let i = 0; i < slots.length; i += 7) {
@@ -1285,7 +1493,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   }
 
   const weekdayRow = `<tr>${WEEKDAYS.map(w => `<td style="width:${cellW}px;height:16px;padding:0;border:0;text-align:center;font-size:9px;color:#94a3b8;vertical-align:bottom;">${w}</td>`).join('')}</tr>`;
-  const calTable = `<table style="border-collapse:separate;border-spacing:${GAP}px ${ROW_GAP}px;width:auto;margin:0 auto;">${weekdayRow}${calendarRows}</table>`;
+  const calTable = `<table style="border-collapse:separate;border-spacing:${GAP}px ${ROW_GAP}px;width:auto;margin:0 auto;overflow:visible;">${weekdayRow}${calendarRows}</table>`;
 
   const footerText = '如有变动请以诊所通知为准';
   const glassPanel = getGlassPanelStyle(forExport);
@@ -1293,9 +1501,9 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   return `<div class="export-root" data-fallback-gradient="${theme.gradient}" style="width:${EXPORT_W}px;height:${h}px;position:relative;background:#fff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;box-sizing:border-box;">
     <img src="${posterImageSrc(theme.backgroundImage)}" alt="" onerror="handlePosterImageError(this)" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;object-position:center top;display:block;pointer-events:none;" />
     <div style="position:absolute;top:${inset.top};left:${inset.left};right:${inset.right};bottom:${inset.bottom};box-sizing:border-box;z-index:1;display:flex;flex-direction:column;">
-      <div style="width:100%;flex:1;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;padding:12px 12px 10px;${glassPanel}">
+      <div style="width:100%;flex:1;display:flex;flex-direction:column;align-items:stretch;box-sizing:border-box;padding:12px ${panelPadH}px 10px;${glassPanel}">
         <div style="text-align:center;width:100%;margin-bottom:8px;flex-shrink:0;">
-          <div style="font-size:22px;font-weight:700;color:${titleColor};line-height:28px;letter-spacing:0.5px;">${esc(clinic)}</div>
+          ${clinic ? `<div style="font-size:22px;font-weight:700;color:${titleColor};line-height:28px;letter-spacing:0.5px;">${esc(clinic)}</div>` : ''}
           ${phone ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:15px;">咨询电话：${esc(phone)}</div>` : ''}
           <div style="font-size:15px;font-weight:600;color:#64748b;line-height:20px;margin-top:${phone ? 6 : 4}px;">${currentYear}年${MONTHS[currentMonth]}</div>
           ${customMsg ? `<div style="font-size:12px;color:#475569;line-height:18px;margin-top:8px;padding:0 8px;">${esc(customMsg)}</div>` : ''}
@@ -1304,7 +1512,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
             <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f87171;margin-right:3px;vertical-align:middle;"></span>休息</span>
           </div>
         </div>
-        <div style="width:100%;display:flex;justify-content:center;margin-top:6px;margin-bottom:4px;flex-shrink:0;padding:0 10px;box-sizing:border-box;">
+        <div style="width:100%;display:flex;justify-content:center;margin-top:6px;margin-bottom:4px;flex-shrink:0;padding:0 ${calWrapPadH}px;box-sizing:border-box;overflow:visible;">
           ${calTable}
         </div>
         <div style="text-align:center;width:100%;margin-top:10px;padding:10px 0 4px;border-top:1px solid rgba(148,163,184,0.2);flex-shrink:0;">
@@ -1317,7 +1525,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
 
 // ==================== 排期 HTML 构建（表格布局，html2canvas 友好） ====================
 function buildScheduleHTML(interactive) {
-  const clinic = document.getElementById('sch-clinic').value || '诊所名称';
+  const clinic = (document.getElementById('sch-clinic').value || '').trim();
   const phone = document.getElementById('sch-phone').value;
   const customMsg = getSchCustomGreeting();
   const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
@@ -1345,28 +1553,13 @@ function buildScheduleHTML(interactive) {
   const GAP = 4;
   const ROW_GAP = 5;
   const cellW = 40;
-  const cellH = 54;
+  const cellH = isShowLunarCalendar() ? 52 : 48;
 
-  function dayCell(d) {
-    if (!d) return `<td style="width:${cellW}px;height:${cellH}px;padding:0;border:0;"></td>`;
-    const work = isWorkDay(currentYear, currentMonth, d);
-    const info = getHolidayInfo(currentYear, currentMonth, d);
-    const holidayLabel = getDayHolidayLabel(info, 4);
-    const label = work ? '诊' : '休';
-    const numColor = work ? '#16a34a' : '#dc2626';
-    const bg = work ? '#f0fdf4' : '#fef2f2';
-    const border = work ? '#bbf7d0' : '#fecaca';
-    const click = interactive ? ` onclick="toggleDay(${currentYear},${currentMonth},${d})" class="cal-day"` : '';
-    return `<td${click} style="width:${cellW}px;height:${cellH}px;padding:0;border:0;vertical-align:top;">
-      <div style="width:${cellW}px;height:${cellH}px;background:${bg};border:1px solid ${border};border-radius:8px;text-align:center;box-sizing:border-box;padding:4px 3px;">
-        <div style="font-size:14px;font-weight:700;line-height:16px;color:${numColor};">${d}</div>
-        ${holidayLabel
-          ? `<div style="font-size:9px;line-height:12px;color:#dc2626;margin-top:2px;font-weight:500;">${esc(holidayLabel)}</div>`
-          : ''}
-        <div style="font-size:9px;font-weight:600;line-height:11px;color:${numColor};margin-top:${holidayLabel ? 2 : 4}px;">${label}</div>
-      </div>
-    </td>`;
-  }
+  const dayCell = d => buildScheduleDayCell(d, {
+    interactive, cellW, cellH, holidayMaxLen: 4, radius: 8, numSize: 14, numLh: 16,
+    workBg: '#f0fdf4', restBg: '#fef2f2', workBorder: '#bbf7d0', restBorder: '#fecaca',
+    workNumColor: '#16a34a', restNumColor: '#dc2626',
+  });
 
   let calendarRows = '';
   for (let i = 0; i < slots.length; i += 7) {
@@ -1374,7 +1567,7 @@ function buildScheduleHTML(interactive) {
   }
 
   const weekdayRow = `<tr>${WEEKDAYS.map(w => `<td style="width:${cellW}px;height:18px;padding:0;border:0;text-align:center;font-size:10px;color:#94a3b8;vertical-align:bottom;">周${w}</td>`).join('')}</tr>`;
-  const calTable = `<table style="border-collapse:separate;border-spacing:${GAP}px ${ROW_GAP}px;width:auto;margin:0 auto;">${weekdayRow}${calendarRows}</table>`;
+  const calTable = `<table style="border-collapse:separate;border-spacing:${GAP}px ${ROW_GAP}px;width:auto;margin:0 auto;overflow:visible;">${weekdayRow}${calendarRows}</table>`;
 
   const footerText = customMsg
     ? '如有变动请以诊所通知为准'
@@ -1383,7 +1576,7 @@ function buildScheduleHTML(interactive) {
   return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
     <div style="background:${gradient};padding:24px 20px 20px;box-sizing:border-box;">
       ${tag ? `<div style="display:inline-block;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:600;background:${tagBg};color:${headerColor};margin-bottom:8px;">${esc(tag)}</div>` : ''}
-      <div style="text-align:right;font-size:12px;color:${subColor};margin-bottom:4px;">${esc(clinic)}</div>
+      ${clinic ? `<div style="text-align:right;font-size:12px;color:${subColor};margin-bottom:4px;">${esc(clinic)}</div>` : ''}
       ${phone ? `<div style="text-align:right;font-size:11px;color:${subColor};margin-bottom:4px;opacity:0.9;">咨询电话：${esc(phone)}</div>` : ''}
       <div style="font-size:24px;font-weight:700;color:${headerColor};line-height:30px;">${currentYear} ${MONTHS[currentMonth]}</div>
       ${customMsg ? `<div style="text-align:center;font-size:13px;color:${headerColor};line-height:20px;margin:6px 0 2px;padding:0 8px;opacity:0.95;">${esc(customMsg)}</div>` : ''}
@@ -1432,7 +1625,7 @@ function selectTemplate(key) {
 
 function buildCareHTML() {
   const tpl = CARE_TEMPLATES[selectedTemplate];
-  const clinic = document.getElementById('care-clinic').value || '诊所名称';
+  const clinic = (document.getElementById('care-clinic').value || '').trim();
   const phone = document.getElementById('care-phone').value;
   const followup = document.getElementById('care-followup').value;
   const advice = document.getElementById('care-advice').value;
@@ -1454,7 +1647,7 @@ function buildCareHTML() {
   return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
     <div style="background:${careThemeGradient(c)};padding:24px 20px 20px;box-sizing:border-box;">
       <div style="font-size:18px;font-weight:700;color:#ffffff;line-height:26px;">${esc(tpl.title)}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;">${esc(clinic)}</div>
+      ${clinic ? `<div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;">${esc(clinic)}</div>` : ''}
     </div>
     <div style="padding:16px;box-sizing:border-box;">
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;">${steps}</table>
@@ -1500,20 +1693,19 @@ function onOtherMessageInput(el) {
 function resolveOtherClinicName(raw) {
   const name = (raw || '').split('\n').map(s => s.trim()).filter(Boolean)[0] || '';
   if (name && name !== '诊所名称') return name;
-  return window.CLINIC_INFO?.name || '';
+  return '';
 }
 
 function getOtherFormData() {
   const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
-  const d = tpl.defaults || {};
-  const clinicRaw = document.getElementById('other-clinic').value || d.clinic || window.CLINIC_INFO?.name || '诊所名称';
-  const clinicSingle = resolveOtherClinicName(clinicRaw) || '诊所名称';
+  const clinicRaw = document.getElementById('other-clinic').value || '';
+  const clinicSingle = resolveOtherClinicName(clinicRaw);
   return {
     clinic: tpl.type === 'notice-card' ? clinicRaw : clinicSingle,
-    phone: document.getElementById('other-phone').value || d.phone || '',
-    address: document.getElementById('other-address').value || d.address || '',
-    subtitle: document.getElementById('other-subtitle').value || d.subtitle || '',
-    message: document.getElementById('other-message').value || d.message || '',
+    phone: document.getElementById('other-phone').value || '',
+    address: document.getElementById('other-address').value || '',
+    subtitle: document.getElementById('other-subtitle').value || '',
+    message: document.getElementById('other-message').value || '',
   };
 }
 
@@ -1671,7 +1863,7 @@ function syncPromoPosterHeight(root, previewEl) {
 function buildOtherPromoHTML(tpl, data) {
   const h = posterDisplayHeight(tpl);
   const lay = promoLayoutCoords(h);
-  const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
+  const titleText = data.clinic || '';
   const sections = parsePromoSections(data.message || '');
   const cardHtml = buildPromoSectionHTML(sections);
   const accent = '#047857';
@@ -1819,7 +2011,7 @@ function buildDentalDayMessageHTML(lines, lay, h) {
 function buildOtherDentalDayHTML(tpl, data) {
   const h = posterDisplayHeight(tpl);
   const lay = dentalDayLayoutCoords(h);
-  const titleText = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.title || '全国爱牙日');
+  const titleText = data.clinic || '';
   const msgLines = (data.message || '').split('\n').map(s => s.trim()).filter(Boolean);
 
   const centerText = (top, text, size, weight, spacing) => text
@@ -1850,7 +2042,7 @@ function buildOtherDentalDayHTML(tpl, data) {
 function buildOtherNoticeCardHTML(tpl, data) {
   const h = posterDisplayHeight(tpl);
   const lay = noticeLayoutCoords(h);
-  const titleRaw = data.clinic && data.clinic !== '诊所名称' ? data.clinic : (tpl.titleLine1 || '重要');
+  const titleRaw = data.clinic || '';
   const titleLines = titleRaw.split('\n').map(s => s.trim()).filter(Boolean);
   const sections = parseNoticeSections(data.message || '');
   const cardHtml = buildNoticeSectionHTML(sections);
@@ -1939,13 +2131,15 @@ function applyOtherTemplateDefaults() {
   const tpl = OTHER_TEMPLATES[selectedOtherTemplate];
   const d = tpl.defaults || {};
   const clinic = document.getElementById('other-clinic');
-  const phone = document.getElementById('other-phone');
-  const address = document.getElementById('other-address');
   const sub = document.getElementById('other-subtitle');
   const msg = document.getElementById('other-message');
-  if ('clinic' in d) clinic.value = d.clinic || '';
-  if ('phone' in d && !window.CLINIC_INFO?.phone) phone.value = d.phone || '';
-  if ('address' in d && !window.CLINIC_INFO?.address) address.value = d.address || '';
+  if ('clinic' in d) {
+    clinic.value = d.clinic || '';
+  } else if (tpl.footerClinic || tpl.type === 'notice-card') {
+    clinic.value = window.CLINIC_INFO?.name || '';
+  } else {
+    clinic.value = '';
+  }
   sub.value = d.subtitle || '';
   msg.value = d.message || '';
   fitTextareaRows(msg, messageTextareaMinRows(tpl.type));
@@ -2052,6 +2246,16 @@ async function exportImage(type) {
       windowHeight: exportH,
       scrollX: 0,
       scrollY: 0,
+      onclone: (_doc, clonedEl) => {
+        clonedEl.style.transform = 'none';
+        clonedEl.style.margin = '0';
+        clonedEl.style.overflow = 'hidden';
+        clonedEl.querySelectorAll('*').forEach(node => {
+          node.style.transform = 'none';
+          node.style.backdropFilter = 'none';
+          node.style.webkitBackdropFilter = 'none';
+        });
+      },
     });
     const link = document.createElement('a');
     const names = { schedule: '节假日排期', care: '术后护理', other: '其他图文' };
