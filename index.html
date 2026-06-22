@@ -171,6 +171,48 @@
       border-color: #0d9488;
       box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
     }
+    .care-step-card {
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-sizing: border-box;
+      transition: box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .care-step-card.is-clickable {
+      cursor: pointer;
+    }
+    .care-step-card.is-clickable:hover {
+      background: #f1f5f9 !important;
+    }
+    .care-item-editor-hint {
+      padding: 14px 12px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      background: #f8fafc;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .care-item-editor-current {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 10px;
+    }
+    .care-item-reset-btn {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #64748b;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .care-item-reset-btn:hover {
+      color: #0d9488;
+    }
     .preview-card {
       width: 360px;
       flex-shrink: 0;
@@ -296,6 +338,10 @@
               <input id="sch-phone" type="text" placeholder="如：010-12345678" oninput="renderSchedulePreview()" class="sch-field-input" />
             </div>
             <div>
+              <label class="sch-field-label" for="sch-address">诊所地址（选填）</label>
+              <input id="sch-address" type="text" placeholder="如：阳光大街001号" oninput="renderSchedulePreview()" class="sch-field-input" />
+            </div>
+            <div>
               <label class="sch-field-label" for="sch-greeting">祝贺文案（选填）</label>
               <textarea id="sch-greeting" rows="4" placeholder="如：祝您端午安康，阖家幸福！" oninput="renderSchedulePreview()" class="sch-field-input"></textarea>
             </div>
@@ -346,6 +392,11 @@
                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
               </div>
               <div>
+                <label class="text-xs text-slate-500 mb-1 block">诊所地址（选填）</label>
+                <input id="care-address" type="text" placeholder="如：阳光大街001号" oninput="renderCarePreview()"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+              </div>
+              <div>
                 <label class="text-xs text-slate-500 mb-1 block">复诊时间</label>
                 <input id="care-followup" type="text" placeholder="如：术后7天上午10:00" oninput="renderCarePreview()"
                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
@@ -355,6 +406,22 @@
                 <textarea id="care-advice" rows="4" placeholder="可补充个性化医嘱..." oninput="renderCarePreview()"
                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
               </div>
+            </div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h3 class="sch-form-title" style="margin-bottom:12px;padding-bottom:8px;">注意事项编辑</h3>
+            <div id="care-item-editor-empty" class="care-item-editor-hint">点击右侧预览中的条目，可在此微调标题与内容</div>
+            <div id="care-item-editor-form" class="hidden space-y-3">
+              <div id="care-item-editor-current" class="care-item-editor-current"></div>
+              <div>
+                <label class="sch-field-label" for="care-item-title">条目标题</label>
+                <input id="care-item-title" type="text" class="sch-field-input" oninput="onCareItemEdit()" />
+              </div>
+              <div>
+                <label class="sch-field-label" for="care-item-body">条目内容</label>
+                <textarea id="care-item-body" rows="4" class="sch-field-input" oninput="onCareItemEdit()"></textarea>
+              </div>
+              <button type="button" class="care-item-reset-btn" onclick="resetCareItemToDefault()">恢复本条默认</button>
             </div>
           </div>
         </div>
@@ -453,6 +520,8 @@ let dayOverrides = {};      // 'YYYY-MM-DD' -> true(出诊) / false(休息)
 let dayEmphasis = {};       // 'YYYY-MM-DD' -> true(高亮，文案随诊休状态)
 let selectedStyle = 'auto';
 let selectedTemplate = 'extraction';
+let careItems = [];
+let selectedCareItemIndex = -1;
 let selectedOtherTemplate = 'dental_day';
 
 // ==================== 主题配置 ====================
@@ -557,19 +626,6 @@ const CARE_TEMPLATES = {
       { t: '复诊提醒', d: '如拔牙后2~3日疼痛逐渐加重，需及时复诊或与医生联系。' },
     ],
   },
-  implant: {
-    label: '种植术后',
-    title: '种植牙术后注意事项',
-    color: '#0d9488',
-    items: [
-      { t: '咬紧纱布', d: '术后咬紧纱布30分钟，24小时内避免刷牙及漱口，防止种植体松动。' },
-      { t: '冰敷消肿', d: '术后48小时内间断冷敷，每次15分钟，可有效减轻术后肿胀。' },
-      { t: '饮食要求', d: '术后以温凉软食为主，避免咀嚼种植侧，忌辛辣刺激食物。' },
-      { t: '口腔清洁', d: '术后次日可用温盐水轻柔漱口，勿使用电动牙刷刷手术区域。' },
-      { t: '按时复诊', d: '请按时复诊拆线及检查愈合情况，如有异常肿胀疼痛请及时就诊。' },
-      { t: '生活习惯', d: '术后两周内避免剧烈运动、吸烟饮酒，保证充足睡眠促进愈合。' },
-    ],
-  },
   filling: {
     label: '补牙术后',
     title: '补牙术后注意事项',
@@ -604,6 +660,19 @@ const CARE_TEMPLATES = {
       { t: '饮食注意', d: '术后24小时内避免浓茶、咖啡、红酒等易染色食物。' },
       { t: '刷牙方法', d: '掌握正确刷牙方法，配合牙线/冲牙器，保持牙周健康。' },
       { t: '定期洁牙', d: '建议每6-12个月洁牙一次，维护口腔健康。' },
+    ],
+  },
+  implant: {
+    label: '种植术后',
+    title: '种植牙术后注意事项',
+    color: '#0d9488',
+    items: [
+      { t: '咬紧纱布', d: '术后咬紧纱布30分钟，24小时内避免刷牙及漱口，防止种植体松动。' },
+      { t: '冰敷消肿', d: '术后48小时内间断冷敷，每次15分钟，可有效减轻术后肿胀。' },
+      { t: '饮食要求', d: '术后以温凉软食为主，避免咀嚼种植侧，忌辛辣刺激食物。' },
+      { t: '口腔清洁', d: '术后次日可用温盐水轻柔漱口，勿使用电动牙刷刷手术区域。' },
+      { t: '按时复诊', d: '请按时复诊拆线及检查愈合情况，如有异常肿胀疼痛请及时就诊。' },
+      { t: '生活习惯', d: '术后两周内避免剧烈运动、吸烟饮酒，保证充足睡眠促进愈合。' },
     ],
   },
   ortho: {
@@ -1500,6 +1569,8 @@ function applyClinicInfoToForms() {
     document.getElementById('other-phone').value = info.phone;
   }
   if (info.address) {
+    document.getElementById('sch-address').value = info.address;
+    document.getElementById('care-address').value = info.address;
     document.getElementById('other-address').value = info.address;
   }
 }
@@ -1775,6 +1846,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
   const forExport = !interactive;
   const clinic = (document.getElementById('sch-clinic').value || '').trim();
   const phone = document.getElementById('sch-phone').value;
+  const address = (document.getElementById('sch-address').value || '').trim();
   const customMsg = getSchCustomGreeting();
   const h = posterHeightFor(theme.backgroundImage, 644);
   const inset = theme.contentInset || { top: '13%', left: '8%', right: '8%', bottom: '24%' };
@@ -1802,7 +1874,8 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
         <div style="text-align:center;width:100%;margin-bottom:8px;flex-shrink:0;">
           ${clinic ? `<div style="font-size:22px;font-weight:700;color:${titleColor};line-height:28px;letter-spacing:0.5px;">${esc(clinic)}</div>` : ''}
           ${phone ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:15px;">咨询电话：${esc(phone)}</div>` : ''}
-          <div style="font-size:15px;font-weight:600;color:#64748b;line-height:20px;margin-top:${phone ? 6 : 4}px;">${currentYear}年${MONTHS[currentMonth]}</div>
+          ${address ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;line-height:14px;padding:0 6px;">${esc(address)}</div>` : ''}
+          <div style="font-size:15px;font-weight:600;color:#64748b;line-height:20px;margin-top:${phone || address ? 6 : 4}px;">${currentYear}年${MONTHS[currentMonth]}</div>
           ${customMsg ? `<div style="font-size:12px;color:#475569;line-height:18px;margin-top:8px;padding:0 8px;">${esc(customMsg)}</div>` : ''}
           <div style="margin-top:8px;font-size:10px;color:#64748b;">
             <span style="margin-right:12px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:3px;vertical-align:middle;"></span>出诊</span>
@@ -1824,6 +1897,7 @@ function buildPosterScheduleHTML(interactive, themeKey, theme) {
 function buildScheduleHTML(interactive) {
   const clinic = (document.getElementById('sch-clinic').value || '').trim();
   const phone = document.getElementById('sch-phone').value;
+  const address = (document.getElementById('sch-address').value || '').trim();
   const customMsg = getSchCustomGreeting();
   const themeKey = selectedStyle === 'auto' ? detectAutoTheme() : selectedStyle;
   const theme = THEMES[themeKey] || THEMES.ocean;
@@ -1867,6 +1941,7 @@ function buildScheduleHTML(interactive) {
       ${tag ? `<div style="display:inline-block;padding:2px 10px;border-radius:4px;font-size:10px;font-weight:600;background:${tagBg};color:${headerColor};margin-bottom:8px;">${esc(tag)}</div>` : ''}
       ${clinic ? `<div style="text-align:right;font-size:12px;color:${subColor};margin-bottom:4px;">${esc(clinic)}</div>` : ''}
       ${phone ? `<div style="text-align:right;font-size:11px;color:${subColor};margin-bottom:4px;opacity:0.9;">咨询电话：${esc(phone)}</div>` : ''}
+      ${address ? `<div style="text-align:right;font-size:10px;color:${subColor};margin-bottom:4px;opacity:0.85;">${esc(address)}</div>` : ''}
       <div style="font-size:24px;font-weight:700;color:${headerColor};line-height:30px;">${currentYear} ${MONTHS[currentMonth]}</div>
       ${customMsg ? `<div style="text-align:center;font-size:13px;color:${headerColor};line-height:20px;margin:6px 0 2px;padding:0 8px;opacity:0.95;">${esc(customMsg)}</div>` : ''}
       <div style="font-size:14px;color:${subColor};margin-top:2px;">出诊排期表</div>
@@ -1909,32 +1984,102 @@ function renderTemplateGrid() {
   ).join('');
 }
 
+function initCareItemsFromTemplate(key) {
+  const tpl = CARE_TEMPLATES[key];
+  careItems = tpl.items.map(item => ({ t: item.t, d: item.d }));
+  selectedCareItemIndex = -1;
+}
+
 function selectTemplate(key) {
   selectedTemplate = key;
+  initCareItemsFromTemplate(key);
   renderTemplateGrid();
+  renderCareItemEditor();
   renderCarePreview();
 }
 
-function buildCareHTML() {
+function selectCareItem(index) {
+  if (index < 0 || index >= careItems.length) return;
+  selectedCareItemIndex = index;
+  renderCareItemEditor();
+  renderCarePreview();
+}
+
+function renderCareItemEditor() {
+  const empty = document.getElementById('care-item-editor-empty');
+  const form = document.getElementById('care-item-editor-form');
+  const current = document.getElementById('care-item-editor-current');
+  const titleInput = document.getElementById('care-item-title');
+  const bodyInput = document.getElementById('care-item-body');
+  if (!empty || !form) return;
+  if (selectedCareItemIndex < 0 || !careItems[selectedCareItemIndex]) {
+    empty.classList.remove('hidden');
+    form.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  form.classList.remove('hidden');
+  const item = careItems[selectedCareItemIndex];
+  if (current) {
+    current.textContent = `当前：第 ${selectedCareItemIndex + 1} 条 · ${item.t || '未命名'}`;
+  }
+  if (titleInput && titleInput !== document.activeElement) titleInput.value = item.t;
+  if (bodyInput && bodyInput !== document.activeElement) bodyInput.value = item.d;
+}
+
+function onCareItemEdit() {
+  if (selectedCareItemIndex < 0 || !careItems[selectedCareItemIndex]) return;
+  const titleInput = document.getElementById('care-item-title');
+  const bodyInput = document.getElementById('care-item-body');
+  careItems[selectedCareItemIndex].t = titleInput ? titleInput.value : '';
+  careItems[selectedCareItemIndex].d = bodyInput ? bodyInput.value : '';
+  const current = document.getElementById('care-item-editor-current');
+  if (current) {
+    current.textContent = `当前：第 ${selectedCareItemIndex + 1} 条 · ${careItems[selectedCareItemIndex].t || '未命名'}`;
+  }
+  renderCarePreview();
+}
+
+function resetCareItemToDefault() {
+  if (selectedCareItemIndex < 0) return;
+  const def = CARE_TEMPLATES[selectedTemplate]?.items[selectedCareItemIndex];
+  if (!def) return;
+  careItems[selectedCareItemIndex] = { t: def.t, d: def.d };
+  renderCareItemEditor();
+  renderCarePreview();
+}
+
+function buildCareHTML(interactive = false) {
   const tpl = CARE_TEMPLATES[selectedTemplate];
+  const items = careItems.length ? careItems : tpl.items;
   const clinic = (document.getElementById('care-clinic').value || '').trim();
   const phone = document.getElementById('care-phone').value;
+  const address = (document.getElementById('care-address').value || '').trim();
   const followup = document.getElementById('care-followup').value;
   const advice = document.getElementById('care-advice').value;
   const c = tpl.color;
 
-  const steps = tpl.items.map((item, i) => `
+  const steps = items.map((item, i) => {
+    const selected = interactive && i === selectedCareItemIndex;
+    const cardClass = interactive ? 'care-step-card is-clickable' : 'care-step-card';
+    const cardStyle = [
+      'background:#f8fafc',
+      selected ? `box-shadow:0 0 0 2px ${c}` : '',
+    ].filter(Boolean).join(';');
+    const click = interactive ? ` onclick="selectCareItem(${i})"` : '';
+    return `
     <tr>
       <td style="width:28px;padding:0 8px 10px 0;vertical-align:top;">
         <div style="width:20px;height:20px;border-radius:10px;background:${c};color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:20px;">${i + 1}</div>
       </td>
       <td style="padding:0 0 10px 0;vertical-align:top;">
-        <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;box-sizing:border-box;">
+        <div class="${cardClass}" style="${cardStyle}"${click}>
           <div style="font-size:14px;font-weight:600;color:#1e293b;line-height:20px;margin-bottom:4px;">${esc(item.t)}</div>
           <div style="font-size:12px;color:#64748b;line-height:18px;">${esc(item.d)}</div>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   return `<div class="export-root" style="width:${EXPORT_W}px;background:#ffffff;font-family:'PingFang SC','Microsoft YaHei',sans-serif;overflow:hidden;">
     <div style="background:${careThemeGradient(c)};padding:24px 20px 20px;box-sizing:border-box;">
@@ -1954,12 +2099,13 @@ function buildCareHTML() {
     </div>
     <div style="padding:12px 20px 20px;text-align:center;border-top:1px solid #f1f5f9;">
       ${phone ? `<div style="font-size:12px;color:#64748b;">如有不适请及时联系：${esc(phone)}</div>` : ''}
+      ${address ? `<div style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:16px;">${esc(address)}</div>` : ''}
     </div>
   </div>`;
 }
 
 function renderCarePreview() {
-  document.getElementById('care-preview').innerHTML = buildCareHTML();
+  document.getElementById('care-preview').innerHTML = buildCareHTML(true);
   requestAnimationFrame(() => requestAnimationFrame(updateCarePreviewScale));
 }
 
@@ -2448,8 +2594,8 @@ function applyOtherTemplateDefaults() {
     clinic.rows = tpl.type === 'notice-card' ? 2 : 1;
     clinic.placeholder = tpl.type === 'dental-day-card' ? '如：全国爱牙日'
       : tpl.type === 'promo-card' ? '如：全国爱牙日'
-      : tpl.type === 'notice-card' ? '如：西大口腔门诊部，回车可换行'
-      : tpl.footerClinic ? '如：西大口腔门诊部'
+      : tpl.type === 'notice-card' ? '如：阳光口腔门诊部，回车可换行'
+      : tpl.footerClinic ? '如：阳光口腔门诊部'
       : '如：阳光口腔诊所';
   }
   document.getElementById('other-address-wrap').classList.toggle('hidden', !tpl.showAddress);
@@ -2579,9 +2725,11 @@ async function init() {
   applyOtherTemplateDefaults();
   applyClinicInfoToForms();
   setupCalDayTooltip();
+  initCareItemsFromTemplate(selectedTemplate);
   await fetchHolidays(currentYear);
   await preloadAllBackgroundSizes();
   await renderSchedulePreview();
+  renderCareItemEditor();
   renderCarePreview();
   await renderOtherPreview();
 }
