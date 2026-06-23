@@ -1,10 +1,15 @@
 ---
-title: "齿科设计助手"
-description: "为口腔诊所一键生成排班表、护理卡片、节日海报等宣传物料的在线工具"
-tags: ["HTML", "JavaScript", "Tailwind CSS", "html2canvas"]
-demoUrl: "https://clinictools.vercel.app"
-githubUrl: ""
-date: "2026-06"
+title: 齿科设计助手
+description: 为口腔诊所一键生成排班表、护理卡片、节日海报等宣传物料的在线工具
+tags:
+  - HTML
+  - JavaScript
+  - Tailwind CSS
+  - html2canvas
+demoUrl: https://clinictools.vercel.app
+githubUrl: https://github.com/Bovia/clinic_tools
+date: 2026-06
+devices: ""
 ---
 
 ## 为什么做这个
