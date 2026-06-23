@@ -9,7 +9,10 @@ tags:
 demoUrl: https://clinictools.vercel.app
 githubUrl: https://github.com/Bovia/clinic_tools
 date: 2026-06
-devices: ""
+devices:
+  - desktop
+  - mobile
+  - tablet
 ---
 
 ## 为什么做这个
