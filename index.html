@@ -12,37 +12,163 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"PingFang SC"', '"Helvetica Neue"', 'sans-serif'],
+          },
+          colors: {
+            apple: {
+              bg: '#f5f5f7',
+              text: '#1d1d1f',
+              secondary: '#86868b',
+              tertiary: '#aeaeb2',
+              blue: '#007AFF',
+              'blue-hover': '#0066d6',
+              fill: 'rgba(118,118,128,0.12)',
+              separator: 'rgba(60,60,67,0.12)',
+            },
           },
         },
       },
     };
   </script>
   <style>
+    :root {
+      --apple-bg: #f5f5f7;
+      --apple-text: #1d1d1f;
+      --apple-text-secondary: #86868b;
+      --apple-text-tertiary: #aeaeb2;
+      --apple-blue: #007AFF;
+      --apple-blue-hover: #0066d6;
+      --apple-fill: rgba(118, 118, 128, 0.12);
+      --apple-separator: rgba(60, 60, 67, 0.12);
+      --apple-radius-lg: 16px;
+      --apple-radius-md: 12px;
+      --apple-radius-sm: 10px;
+      --apple-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+      --apple-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+      --apple-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
     * { -webkit-tap-highlight-color: transparent; }
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
     textarea { resize: vertical; min-height: 2.5rem; }
-    .tab-active { background: #0d9488; color: #fff; box-shadow: 0 2px 8px rgba(13,148,136,.35); }
-    .tpl-pill { transition: all .2s; }
-    .tpl-pill.active { box-shadow: 0 0 0 2px #0d9488; }
+
+    /* 顶栏毛玻璃 */
+    .apple-header {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 0.5px solid var(--apple-separator);
+    }
+
+    /* 分段控件 */
+    .apple-segment {
+      display: flex;
+      gap: 2px;
+      padding: 2px;
+      background: var(--apple-fill);
+      border-radius: 999px;
+    }
+    .tab-btn {
+      transition: background 0.22s var(--apple-ease), color 0.22s var(--apple-ease), box-shadow 0.22s var(--apple-ease);
+    }
+    .tab-active {
+      background: #fff;
+      color: var(--apple-text);
+      box-shadow: var(--apple-shadow-sm);
+    }
+    .tab-inactive {
+      color: var(--apple-text-secondary);
+    }
+    .tab-inactive:hover {
+      color: var(--apple-text);
+    }
+
+    /* 卡片 */
+    .apple-card {
+      background: #fff;
+      border-radius: var(--apple-radius-lg);
+      box-shadow: var(--apple-shadow);
+      border: none;
+    }
+
+    /* 按钮 */
+    .apple-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      background: var(--apple-blue);
+      border: none;
+      border-radius: var(--apple-radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s var(--apple-ease), transform 0.15s var(--apple-ease);
+    }
+    .apple-btn-primary:hover { background: var(--apple-blue-hover); }
+    .apple-btn-primary:active { transform: scale(0.98); }
+    .apple-btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--apple-text);
+      background: var(--apple-fill);
+      border: none;
+      border-radius: var(--apple-radius-sm);
+      cursor: pointer;
+      transition: background 0.2s var(--apple-ease);
+    }
+    .apple-btn-secondary:hover { background: rgba(118, 118, 128, 0.18); }
+
+    /* 输入框 */
+    .apple-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: var(--apple-radius-sm);
+      font-size: 13px;
+      color: var(--apple-text);
+      background: var(--apple-fill);
+      box-sizing: border-box;
+      transition: background 0.2s var(--apple-ease), box-shadow 0.2s var(--apple-ease);
+    }
+    .apple-input::placeholder { color: var(--apple-text-tertiary); }
+    .apple-input:focus {
+      outline: none;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+    }
+
+    .tpl-pill { transition: all 0.22s var(--apple-ease); }
+    .tpl-pill.active { box-shadow: 0 0 0 2px var(--apple-blue); }
     .cal-day { cursor: pointer; }
     .cal-day-cell { position: relative; }
     .cal-day-tip-global {
       position: fixed;
       transform: translate(-50%, calc(-100% - 6px));
-      padding: 6px 10px;
-      background: #ffffff;
-      color: #475569;
-      font-size: 10px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--apple-text-secondary);
+      font-size: 11px;
       line-height: 1.5;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
+      border-radius: var(--apple-radius-sm);
+      border: 0.5px solid var(--apple-separator);
       white-space: nowrap;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
       z-index: 9999;
       transition: opacity 0.18s ease 0s, visibility 0.18s ease 0s;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+      box-shadow: var(--apple-shadow);
     }
     .cal-day-tip-global::before {
       content: '';
@@ -51,7 +177,7 @@
       left: 50%;
       transform: translateX(-50%);
       border: 5px solid transparent;
-      border-top-color: #e2e8f0;
+      border-top-color: var(--apple-separator);
     }
     .cal-day-tip-global::after {
       content: '';
@@ -60,7 +186,7 @@
       left: 50%;
       transform: translateX(-50%);
       border: 4px solid transparent;
-      border-top-color: #ffffff;
+      border-top-color: rgba(255, 255, 255, 0.92);
     }
     .cal-day-tip-global.visible {
       opacity: 1;
@@ -70,11 +196,11 @@
     .sch-form-title {
       font-size: 13px;
       font-weight: 600;
-      color: #334155;
-      letter-spacing: 0.02em;
+      color: var(--apple-text);
+      letter-spacing: -0.01em;
       margin-bottom: 14px;
       padding-bottom: 10px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 0.5px solid var(--apple-separator);
     }
     .sch-month-bar {
       display: flex;
@@ -82,48 +208,48 @@
       justify-content: center;
       gap: 10px;
       padding: 10px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      background: var(--apple-fill);
+      border: none;
+      border-radius: var(--apple-radius-md);
     }
     .sch-month-btn {
       width: 32px;
       height: 32px;
       border-radius: 8px;
-      border: 1px solid #cbd5e1;
+      border: none;
       background: #fff;
-      color: #475569;
+      color: var(--apple-text);
       font-size: 14px;
       line-height: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      box-shadow: var(--apple-shadow-sm);
+      transition: background 0.2s var(--apple-ease), transform 0.15s var(--apple-ease);
     }
-    .sch-month-btn:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-    }
+    .sch-month-btn:hover { background: #fafafa; }
+    .sch-month-btn:active { transform: scale(0.94); }
     .sch-month-label {
       min-width: 128px;
       text-align: center;
       font-size: 15px;
       font-weight: 600;
-      color: #1e293b;
-      letter-spacing: 0.02em;
+      color: var(--apple-text);
+      letter-spacing: -0.02em;
     }
     .sch-settings-block {
-      padding: 10px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      padding: 12px 14px;
+      background: var(--apple-fill);
+      border: none;
+      border-radius: var(--apple-radius-md);
     }
     .sch-settings-title {
       font-size: 11px;
       font-weight: 600;
-      color: #64748b;
-      letter-spacing: 0.04em;
+      color: var(--apple-text-secondary);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
       margin-bottom: 10px;
     }
     .sch-settings-grid {
@@ -137,39 +263,40 @@
       gap: 8px;
       cursor: pointer;
       font-size: 13px;
-      color: #334155;
+      color: var(--apple-text);
       user-select: none;
     }
     .sch-check-item input[type="checkbox"] {
-      width: 15px;
-      height: 15px;
+      width: 16px;
+      height: 16px;
       margin: 0;
       flex-shrink: 0;
-      accent-color: #0d9488;
+      accent-color: var(--apple-blue);
       cursor: pointer;
     }
     .sch-field-label {
       display: block;
       font-size: 12px;
       font-weight: 500;
-      color: #475569;
+      color: var(--apple-text-secondary);
       margin-bottom: 6px;
     }
     .sch-field-input {
       width: 100%;
-      padding: 9px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: var(--apple-radius-sm);
       font-size: 13px;
-      color: #1e293b;
-      background: #fff;
+      color: var(--apple-text);
+      background: var(--apple-fill);
       box-sizing: border-box;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: background 0.2s var(--apple-ease), box-shadow 0.2s var(--apple-ease);
     }
+    .sch-field-input::placeholder { color: var(--apple-text-tertiary); }
     .sch-field-input:focus {
       outline: none;
-      border-color: #0d9488;
-      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
     }
     .care-step-card {
       border-radius: 8px;
@@ -181,41 +308,44 @@
       cursor: pointer;
     }
     .care-step-card.is-clickable:hover {
-      background: #f1f5f9 !important;
+      background: var(--apple-fill) !important;
     }
     .care-item-editor-hint {
       padding: 14px 12px;
-      border: 1px dashed #cbd5e1;
-      border-radius: 10px;
-      background: #f8fafc;
+      border: 1px dashed var(--apple-separator);
+      border-radius: var(--apple-radius-md);
+      background: var(--apple-fill);
       font-size: 12px;
-      color: #64748b;
+      color: var(--apple-text-secondary);
       line-height: 1.6;
       text-align: center;
     }
     .care-item-editor-current {
       font-size: 12px;
       font-weight: 600;
-      color: #475569;
+      color: var(--apple-text-secondary);
       margin-bottom: 10px;
     }
     .care-item-reset-btn {
       margin-top: 8px;
       font-size: 12px;
-      color: #64748b;
+      color: var(--apple-blue);
       background: none;
       border: none;
       padding: 0;
       cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
+      text-decoration: none;
     }
     .care-item-reset-btn:hover {
-      color: #0d9488;
+      color: var(--apple-blue-hover);
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
     .preview-card {
       width: 360px;
       flex-shrink: 0;
+      border-radius: var(--apple-radius-lg);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
     }
     .preview-card > .export-root { width: 360px; }
     .preview-frame {
@@ -224,11 +354,35 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #f1f5f9;
-      border-radius: 16px;
-      border: 1px solid #e2e8f0;
+      background: var(--apple-fill);
+      border-radius: var(--apple-radius-lg);
+      border: none;
       padding: 16px;
       box-sizing: border-box;
+    }
+    .apple-section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--apple-text);
+      letter-spacing: -0.03em;
+    }
+    .apple-section-desc {
+      font-size: 13px;
+      color: var(--apple-text-secondary);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .apple-label {
+      font-size: 13px;
+      color: var(--apple-text-secondary);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .apple-subsection-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--apple-text);
+      letter-spacing: -0.01em;
     }
     .preview-scale-host {
       position: relative;
@@ -266,22 +420,22 @@
     .spin { animation: spin .8s linear infinite; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+<body class="bg-[#f5f5f7] text-[#1d1d1f] font-sans min-h-screen">
 
   <!-- 顶栏 -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+  <header class="apple-header sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-bold text-lg shadow-md">齿</div>
+        <div class="w-10 h-10 rounded-[12px] bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white font-semibold text-lg shadow-sm">齿</div>
         <div>
-          <h1 class="text-lg font-bold text-slate-900">齿科设计助手</h1>
-          <p class="text-xs text-slate-500">排期表 · 术后须知 · 其他图文 · 一键出图</p>
+          <h1 class="text-[17px] font-semibold text-[#1d1d1f] tracking-tight">齿科设计助手</h1>
+          <p class="text-xs text-[#86868b]">排期表 · 术后须知 · 其他图文 · 一键出图</p>
         </div>
       </div>
-      <nav class="flex gap-2 bg-slate-100 p-1 rounded-full">
-        <button id="tab-schedule" onclick="switchTab('schedule')" class="tab-btn tab-active px-4 py-2 rounded-full text-sm font-medium transition">节假日排期</button>
-        <button id="tab-care" onclick="switchTab('care')" class="tab-btn px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition">术后护理</button>
-        <button id="tab-other" onclick="switchTab('other')" class="tab-btn px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition">其他</button>
+      <nav class="apple-segment">
+        <button id="tab-schedule" onclick="switchTab('schedule')" class="tab-btn tab-active px-4 py-2 rounded-full text-sm font-medium">节假日排期</button>
+        <button id="tab-care" onclick="switchTab('care')" class="tab-btn tab-inactive px-4 py-2 rounded-full text-sm font-medium">术后护理</button>
+        <button id="tab-other" onclick="switchTab('other')" class="tab-btn tab-inactive px-4 py-2 rounded-full text-sm font-medium">其他</button>
       </nav>
     </div>
   </header>
@@ -290,25 +444,25 @@
 
     <!-- ========== 节假日排期 ========== -->
     <section id="panel-schedule">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+      <div class="apple-card p-5 mb-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-xl font-bold text-slate-900">节假日排期表</h2>
-            <p class="text-sm text-slate-500 mt-1">自动获取节假日数据，左键点击切换诊↔休，右键切换高亮（出诊显示「上班」、休息显示「休息」），一键导出通知图</p>
+            <h2 class="apple-section-title">节假日排期表</h2>
+            <p class="apple-section-desc">自动获取节假日数据，左键点击切换诊↔休，右键切换高亮（出诊显示「上班」、休息显示「休息」），一键导出通知图</p>
           </div>
-          <button onclick="refreshHolidays()" class="px-4 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2">
+          <button onclick="refreshHolidays()" class="apple-btn-secondary">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             刷新节假日
           </button>
         </div>
-        <div class="mt-3">
-          <label class="text-sm text-slate-600 mb-1.5 block">选择风格</label>
+        <div class="mt-4">
+          <label class="apple-label">选择风格</label>
           <div id="style-pills" class="flex flex-wrap gap-1.5"></div>
         </div>
       </div>
 
       <div class="grid lg:grid-cols-2 gap-6 pb-8">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <div class="apple-card p-5">
           <h3 class="sch-form-title">排期信息</h3>
           <div class="space-y-4">
             <div class="sch-month-bar">
@@ -351,11 +505,11 @@
         <div class="preview-with-export lg:justify-start w-full">
           <div id="schedule-preview-frame" class="preview-frame flex-1 min-w-0 w-full">
             <div id="schedule-preview-host" class="preview-scale-host">
-              <div id="schedule-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+              <div id="schedule-preview" class="preview-card bg-white overflow-hidden"></div>
             </div>
           </div>
           <div class="preview-export-actions">
-            <button onclick="exportImage('schedule')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
+            <button onclick="exportImage('schedule')" class="apple-btn-primary">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
               导出图片
             </button>
@@ -366,11 +520,11 @@
 
     <!-- ========== 术后护理 ========== -->
     <section id="panel-care" class="hidden">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <h2 class="text-xl font-bold text-slate-900">术后护理须知</h2>
-        <p class="text-sm text-slate-500 mt-1">选择模板，填写个性化信息，一键生成患者须知图</p>
-        <div class="mt-3">
-          <label class="text-sm text-slate-600 mb-1.5 block">选择模板</label>
+      <div class="apple-card p-5 mb-6">
+        <h2 class="apple-section-title">术后护理须知</h2>
+        <p class="apple-section-desc">选择模板，填写个性化信息，一键生成患者须知图</p>
+        <div class="mt-4">
+          <label class="apple-label">选择模板</label>
           <div id="tpl-grid" class="flex flex-wrap gap-1.5"></div>
         </div>
       </div>
@@ -378,37 +532,37 @@
       <div class="grid lg:grid-cols-2 gap-6 pb-8">
         <!-- 左侧控制 -->
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <h3 class="text-sm font-semibold text-slate-700 mb-3">个性化信息</h3>
+          <div class="apple-card p-5">
+            <h3 class="apple-subsection-title mb-3">个性化信息</h3>
             <div class="space-y-3">
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">诊所名称</label>
+                <label class="apple-label">诊所名称</label>
                 <input id="care-clinic" type="text" placeholder="如：阳光口腔诊所" oninput="renderCarePreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
+                <label class="apple-label">联系电话</label>
                 <input id="care-phone" type="text" placeholder="如：010-12345678" oninput="renderCarePreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">诊所地址（选填）</label>
+                <label class="apple-label">诊所地址（选填）</label>
                 <input id="care-address" type="text" placeholder="如：阳光大街001号" oninput="renderCarePreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">复诊时间</label>
+                <label class="apple-label">复诊时间</label>
                 <input id="care-followup" type="text" placeholder="如：术后7天上午10:00" oninput="renderCarePreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">医生建议（选填）</label>
+                <label class="apple-label">医生建议（选填）</label>
                 <textarea id="care-advice" rows="4" placeholder="可补充个性化医嘱..." oninput="renderCarePreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
+                  class="apple-input"></textarea>
               </div>
             </div>
           </div>
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <div class="apple-card p-5">
             <h3 class="sch-form-title" style="margin-bottom:12px;padding-bottom:8px;">注意事项编辑</h3>
             <div id="care-item-editor-empty" class="care-item-editor-hint">点击右侧预览中的条目，可在此微调标题与内容</div>
             <div id="care-item-editor-form" class="hidden space-y-3">
@@ -430,11 +584,11 @@
         <div class="preview-with-export lg:justify-start w-full">
           <div id="care-preview-frame" class="preview-frame flex-1 min-w-0 w-full">
             <div id="care-preview-host" class="preview-scale-host">
-              <div id="care-preview" class="preview-card bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+              <div id="care-preview" class="preview-card bg-white overflow-hidden"></div>
             </div>
           </div>
           <div class="preview-export-actions">
-            <button onclick="exportImage('care')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
+            <button onclick="exportImage('care')" class="apple-btn-primary">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
               导出图片
             </button>
@@ -445,44 +599,44 @@
 
     <!-- ========== 其他图文 ========== -->
     <section id="panel-other" class="hidden">
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
-        <h2 class="text-xl font-bold text-slate-900">其他图文</h2>
-        <p class="text-sm text-slate-500 mt-1">选择模板，填写文案信息，一键生成宣传图</p>
-        <div class="mt-3">
-          <label class="text-sm text-slate-600 mb-1.5 block">选择模板</label>
+      <div class="apple-card p-5 mb-6">
+        <h2 class="apple-section-title">其他图文</h2>
+        <p class="apple-section-desc">选择模板，填写文案信息，一键生成宣传图</p>
+        <div class="mt-4">
+          <label class="apple-label">选择模板</label>
           <div id="other-tpl-grid" class="flex flex-wrap gap-1.5"></div>
         </div>
       </div>
 
       <div class="grid lg:grid-cols-5 gap-6 pb-8">
         <div class="space-y-6 lg:col-span-2">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <h3 class="text-sm font-semibold text-slate-700 mb-3">图文信息</h3>
+          <div class="apple-card p-5">
+            <h3 class="apple-subsection-title mb-3">图文信息</h3>
             <div class="space-y-3">
               <div>
-                <label id="other-clinic-label" class="text-xs text-slate-500 mb-1 block">诊所名称</label>
+                <label id="other-clinic-label" class="apple-label">诊所名称</label>
                 <textarea id="other-clinic" rows="1" placeholder="如：阳光口腔诊所" oninput="renderOtherPreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
+                  class="apple-input"></textarea>
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">联系电话</label>
+                <label class="apple-label">联系电话</label>
                 <input id="other-phone" type="text" placeholder="如：010-12345678" oninput="renderOtherPreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div id="other-address-wrap">
-                <label class="text-xs text-slate-500 mb-1 block">诊所地址（选填）</label>
+                <label class="apple-label">诊所地址（选填）</label>
                 <input id="other-address" type="text" placeholder="如：阳光大街001号" oninput="renderOtherPreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">副标题（选填）</label>
+                <label class="apple-label">副标题（选填）</label>
                 <input id="other-subtitle" type="text" placeholder="如：一袭白衣 心怀暖阳" oninput="renderOtherPreview()"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30" />
+                  class="apple-input" />
               </div>
               <div>
-                <label class="text-xs text-slate-500 mb-1 block">正文文案（选填）</label>
+                <label class="apple-label">正文文案（选填）</label>
                 <textarea id="other-message" rows="8" placeholder="如：你们用温柔双手 呵护生命希望" oninput="onOtherMessageInput(this)"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30"></textarea>
+                  class="apple-input"></textarea>
               </div>
             </div>
           </div>
@@ -490,11 +644,11 @@
         <div class="lg:col-span-3 w-full preview-with-export lg:justify-start">
           <div id="other-preview-frame" class="preview-frame flex-1 min-w-0">
             <div id="other-preview-host" class="preview-scale-host">
-              <div id="other-preview" class="preview-card poster bg-white rounded-2xl shadow-xl overflow-hidden"></div>
+              <div id="other-preview" class="preview-card poster bg-white overflow-hidden"></div>
             </div>
           </div>
           <div class="preview-export-actions">
-            <button onclick="exportImage('other')" class="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-2 shadow-sm whitespace-nowrap">
+            <button onclick="exportImage('other')" class="apple-btn-primary">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
               导出图片
             </button>
@@ -504,7 +658,7 @@
     </section>
   </main>
 
-  <footer class="text-center text-xs text-slate-400 py-6 border-t border-slate-100">
+  <footer class="text-center text-xs text-[#aeaeb2] py-6">
   齿科设计助手 · 门诊图文工具
   </footer>
 
@@ -872,7 +1026,7 @@ function switchTab(tab) {
     document.getElementById(`panel-${name}`).classList.toggle('hidden', tab !== name);
     const btn = document.getElementById(`tab-${name}`);
     btn.classList.toggle('tab-active', tab === name);
-    btn.classList.toggle('text-slate-600', tab !== name);
+    btn.classList.toggle('tab-inactive', tab !== name);
   });
   requestAnimationFrame(updateAllPreviewScales);
 }
@@ -1445,14 +1599,14 @@ function getThemeGradient(themeKey) {
 // ==================== 风格选择器 ====================
 function tplPillButton(label, color, active, onclick, themeActive = false) {
   const base = 'tpl-pill px-3 py-1.5 rounded-full text-xs border';
-  let cls = `${base} border-slate-200 text-slate-600 hover:bg-slate-50`;
+  let cls = `${base} border-transparent text-[#86868b] hover:bg-[rgba(118,118,128,0.08)]`;
   let extraStyle = '';
   if (active) {
     if (themeActive) {
       cls = `${base} active font-medium`;
       extraStyle = `border-color:${color};background-color:${rgbaHex(color, 0.12)};color:${color};box-shadow:0 0 0 2px ${rgbaHex(color, 0.35)}`;
     } else {
-      cls = `${base} active border-teal-500 bg-teal-50 text-teal-700 font-medium`;
+      cls = `${base} active border-[#007AFF] bg-[rgba(0,122,255,0.1)] text-[#007AFF] font-medium`;
     }
   }
   const styleAttr = extraStyle ? ` style="${extraStyle}"` : '';
