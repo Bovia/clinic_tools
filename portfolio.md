@@ -1,6 +1,7 @@
 ---
 title: 齿科设计助手
 description: 为口腔诊所一键生成排班表、护理卡片、节日海报等宣传物料的在线工具
+published: true
 tags:
   - HTML
   - JavaScript
